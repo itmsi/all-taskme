@@ -11,6 +11,9 @@ import TeamsPage from './pages/TeamsPage'
 import ProjectsPage from './pages/ProjectsPage'
 import TasksPage from './pages/TasksPage'
 import ProfilePage from './pages/ProfilePage'
+import AnalyticsPage from './pages/AnalyticsPage'
+import NotificationsPage from './pages/NotificationsPage'
+import UsersPage from './pages/UsersPage'
 
 // Layouts
 import AuthLayout from './layouts/AuthLayout'
@@ -60,6 +63,9 @@ function AppRoutes() {
         <Route path="teams" element={<TeamsPage />} />
         <Route path="projects" element={<ProjectsPage />} />
         <Route path="tasks" element={<TasksPage />} />
+        <Route path="analytics" element={<AnalyticsPage />} />
+        <Route path="notifications" element={<NotificationsPage />} />
+        <Route path="users" element={<UsersPage />} />
         <Route path="profile" element={<ProfilePage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

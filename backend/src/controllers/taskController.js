@@ -312,6 +312,136 @@ const updateTask = async (req, res) => {
   }
 };
 
+// Update task status (for Kanban drag and drop)
+const updateTaskStatusKanban = async (req, res) => {
+  try {
+    const taskId = req.params.id;
+    const userId = req.user.id;
+    const { status_id } = req.body;
+
+    if (!status_id) {
+      return res.status(400).json({
+        success: false,
+        message: 'Status ID diperlukan'
+      });
+    }
+
+    // Check if user has permission to update this task (admin can update all tasks)
+    if (req.user.role !== 'admin') {
+      const permissionCheck = await query(`
+        SELECT t.id FROM tasks t
+        JOIN projects p ON t.project_id = p.id
+        LEFT JOIN task_members tm ON t.id = tm.task_id
+        LEFT JOIN project_collaborators pc ON p.id = pc.project_id
+        WHERE t.id = $1 AND (tm.user_id = $2 OR pc.user_id = $2 OR p.created_by = $2)
+        LIMIT 1
+      `, [taskId, userId]);
+
+      if (permissionCheck.rows.length === 0) {
+        return res.status(403).json({
+          success: false,
+          message: 'Anda tidak memiliki izin untuk mengupdate task ini'
+        });
+      }
+    }
+
+    // Verify status exists and belongs to the same project
+    const statusCheck = await query(`
+      SELECT ts.id FROM task_statuses ts
+      JOIN tasks t ON ts.project_id = t.project_id OR ts.is_default = true
+      WHERE ts.id = $1 AND t.id = $2
+      LIMIT 1
+    `, [status_id, taskId]);
+
+    if (statusCheck.rows.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Status tidak valid untuk project ini'
+      });
+    }
+
+    const result = await query(`
+      UPDATE tasks 
+      SET status_id = $1, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $2
+      RETURNING id, title, status_id, updated_at
+    `, [status_id, taskId]);
+
+    res.json({
+      success: true,
+      message: 'Status task berhasil diupdate',
+      data: result.rows[0]
+    });
+  } catch (error) {
+    console.error('Update task status error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Gagal mengupdate status task'
+    });
+  }
+};
+
+// Update task order (for Kanban reordering)
+const updateTaskOrder = async (req, res) => {
+  try {
+    const projectId = req.params.projectId;
+    const userId = req.user.id;
+    const { tasks } = req.body; // Array of { id, position }
+
+    if (!Array.isArray(tasks)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Data tasks harus berupa array'
+      });
+    }
+
+    // Check if user has permission to update tasks in this project
+    const permissionCheck = await query(`
+      SELECT p.id FROM projects p
+      LEFT JOIN project_collaborators pc ON p.id = pc.project_id
+      WHERE p.id = $1 AND (p.created_by = $2 OR pc.user_id = $2)
+      LIMIT 1
+    `, [projectId, userId]);
+
+    if (permissionCheck.rows.length === 0) {
+      return res.status(403).json({
+        success: false,
+        message: 'Anda tidak memiliki izin untuk mengupdate tasks di project ini'
+      });
+    }
+
+    // Update task positions in a transaction
+    const client = await query('BEGIN');
+    
+    try {
+      for (const task of tasks) {
+        await query(`
+          UPDATE tasks 
+          SET position = $1, updated_at = CURRENT_TIMESTAMP
+          WHERE id = $2 AND project_id = $3
+        `, [task.position, task.id, projectId]);
+      }
+      
+      await query('COMMIT');
+      
+      res.json({
+        success: true,
+        message: 'Urutan tasks berhasil diupdate',
+        data: { updated_count: tasks.length }
+      });
+    } catch (error) {
+      await query('ROLLBACK');
+      throw error;
+    }
+  } catch (error) {
+    console.error('Update task order error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Gagal mengupdate urutan tasks'
+    });
+  }
+};
+
 // Delete task
 const deleteTask = async (req, res) => {
   try {
@@ -691,20 +821,23 @@ const getTaskStatuses = async (req, res) => {
     const projectId = req.params.projectId;
     const userId = req.user.id;
 
-    // Check if user has access to this project
-    const accessCheck = await query(`
-      SELECT p.id FROM projects p
-      LEFT JOIN project_collaborators pc ON p.id = pc.project_id
-      WHERE p.id = $1 AND (p.created_by = $2 OR pc.user_id = $2)
-      LIMIT 1
-    `, [projectId, userId]);
+    // Check if user has access to this project (admin can access all projects)
+    if (req.user.role !== 'admin') {
+      const accessCheck = await query(`
+        SELECT p.id FROM projects p
+        LEFT JOIN project_collaborators pc ON p.id = pc.project_id
+        WHERE p.id = $1 AND (p.created_by = $2 OR pc.user_id = $2)
+        LIMIT 1
+      `, [projectId, userId]);
 
-    if (accessCheck.rows.length === 0) {
-      return res.status(403).json({
-        success: false,
-        message: 'Akses ditolak ke project ini'
-      });
+      if (accessCheck.rows.length === 0) {
+        return res.status(403).json({
+          success: false,
+          message: 'Akses ditolak ke project ini'
+        });
+      }
     }
+
 
     const result = await query(`
       SELECT id, name, color, position, is_default, created_at
@@ -899,6 +1032,8 @@ module.exports = {
   createTask,
   getTaskById,
   updateTask,
+  updateTaskStatusKanban,
+  updateTaskOrder,
   deleteTask,
   getTaskMembers,
   addTaskMember,

@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react'
-import { Plus, Users, Crown, User } from 'lucide-react'
+import { Plus, Users, Crown, User, Edit, Trash2 } from 'lucide-react'
 import Button from '../components/Button'
 import LoadingSpinner from '../components/LoadingSpinner'
+import TeamModal from '../components/TeamModal'
 import { teamsAPI } from '../services/api'
 
 export default function TeamsPage() {
   const [teams, setTeams] = useState([])
   const [loading, setLoading] = useState(true)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [selectedTeam, setSelectedTeam] = useState(null)
 
   useEffect(() => {
     const fetchTeams = async () => {
@@ -23,6 +26,20 @@ export default function TeamsPage() {
 
     fetchTeams()
   }, [])
+
+  const handleCreateTeam = () => {
+    setSelectedTeam(null)
+    setIsModalOpen(true)
+  }
+
+  const handleEditTeam = (team) => {
+    setSelectedTeam(team)
+    setIsModalOpen(true)
+  }
+
+  const handleModalSuccess = () => {
+    fetchTeams()
+  }
 
   if (loading) {
     return (
@@ -43,7 +60,7 @@ export default function TeamsPage() {
             Kelola tim dan anggota untuk kolaborasi yang lebih baik.
           </p>
         </div>
-        <Button>
+        <Button onClick={handleCreateTeam}>
           <Plus className="h-4 w-4 mr-2" />
           Buat Tim
         </Button>
@@ -79,21 +96,41 @@ export default function TeamsPage() {
                 <div className="flex items-center justify-between text-sm text-gray-500">
                   <div className="flex items-center">
                     <User className="h-4 w-4 mr-1" />
-                    {team.memberCount} anggota
+                    {team.memberCount || 0} anggota
                   </div>
-                  <span className={`badge ${
-                    team.role === 'leader' ? 'badge-warning' : 
-                    team.role === 'member' ? 'badge-primary' : 'badge-gray'
-                  }`}>
-                    {team.role === 'leader' ? 'Leader' : 
-                     team.role === 'member' ? 'Member' : 'Viewer'}
-                  </span>
+                  <div className="flex items-center space-x-2">
+                    <span className={`badge ${
+                      team.role === 'leader' ? 'badge-warning' : 
+                      team.role === 'member' ? 'badge-primary' : 'badge-gray'
+                    }`}>
+                      {team.role === 'leader' ? 'Leader' : 
+                       team.role === 'member' ? 'Member' : 'Viewer'}
+                    </span>
+                    <div className="flex space-x-1">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleEditTeam(team)
+                        }}
+                        className="p-1 text-gray-400 hover:text-blue-600"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           ))}
         </div>
       )}
+
+      <TeamModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        team={selectedTeam}
+        onSuccess={handleModalSuccess}
+      />
     </div>
   )
 }

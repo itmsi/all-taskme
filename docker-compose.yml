@@ -28,6 +28,7 @@ services:
       DATABASE_URL: postgresql://taskme_user:taskme_password@postgres:5432/taskme
       JWT_SECRET: your-super-secret-jwt-key-change-in-production
       PORT: 5000
+      CORS_ORIGIN: http://localhost:9562
     ports:
       - "9561:5000"
     depends_on:

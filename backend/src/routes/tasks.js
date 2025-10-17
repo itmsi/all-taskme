@@ -138,23 +138,23 @@ router.post('/project/:projectId', authenticateToken, validate(schemas.createTas
 
 /**
  * @swagger
- * /api/tasks/{id}:
+ * /api/tasks/statuses/project/{projectId}:
  *   get:
- *     summary: Get task by ID
- *     tags: [Tasks]
+ *     summary: Get task statuses for a project
+ *     tags: [Task Statuses]
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: id
+ *         name: projectId
  *         required: true
  *         schema:
  *           type: string
  *           format: uuid
- *         description: Task ID
+ *         description: Project ID
  *     responses:
  *       200:
- *         description: Task details
+ *         description: List of task statuses
  *         content:
  *           application/json:
  *             schema:
@@ -164,14 +164,210 @@ router.post('/project/:projectId', authenticateToken, validate(schemas.createTas
  *                   type: boolean
  *                   example: true
  *                 data:
- *                   $ref: '#/components/schemas/Task'
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                         format: uuid
+ *                       name:
+ *                         type: string
+ *                       color:
+ *                         type: string
+ *                       position:
+ *                         type: integer
+ *                       is_default:
+ *                         type: boolean
+ *                       created_at:
+ *                         type: string
+ *                         format: date-time
  *       401:
  *         $ref: '#/components/responses/UnauthorizedError'
  *       403:
  *         $ref: '#/components/responses/ForbiddenError'
- *       404:
- *         $ref: '#/components/responses/NotFoundError'
  */
+router.get('/statuses/project/:projectId', authenticateToken, taskController.getTaskStatuses);
+
+/**
+ * @swagger
+ * /api/tasks/statuses:
+ *   post:
+ *     summary: Create task status
+ *     tags: [Task Statuses]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - project_id
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 example: "In Review"
+ *               color:
+ *                 type: string
+ *                 default: "#6B7280"
+ *                 example: "#F59E0B"
+ *               position:
+ *                 type: integer
+ *                 default: 0
+ *               project_id:
+ *                 type: string
+ *                 format: uuid
+ *     responses:
+ *       201:
+ *         description: Task status created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Status berhasil dibuat"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       format: uuid
+ *                     name:
+ *                       type: string
+ *                     color:
+ *                       type: string
+ *                     position:
+ *                       type: integer
+ *                     is_default:
+ *                       type: boolean
+ *                     created_at:
+ *                       type: string
+ *                       format: date-time
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ */
+router.post('/statuses', authenticateToken, validate(schemas.createTaskStatus), taskController.createTaskStatus);
+
+/**
+ * @swagger
+ * /api/tasks/statuses/{id}:
+ *   put:
+ *     summary: Update task status
+ *     tags: [Task Statuses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Status ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               color:
+ *                 type: string
+ *               position:
+ *                 type: integer
+ *     responses:
+ *       200:
+ *         description: Task status updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Status berhasil diupdate"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       format: uuid
+ *                     name:
+ *                       type: string
+ *                     color:
+ *                       type: string
+ *                     position:
+ *                       type: integer
+ *                     is_default:
+ *                       type: boolean
+ *                     created_at:
+ *                       type: string
+ *                       format: date-time
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ */
+router.put('/statuses/:id', authenticateToken, validate(schemas.updateTaskStatus), taskController.updateTaskStatus);
+
+/**
+ * @swagger
+ * /api/tasks/statuses/{id}:
+ *   delete:
+ *     summary: Delete task status
+ *     tags: [Task Statuses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Status ID
+ *     responses:
+ *       200:
+ *         description: Task status deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Status berhasil dihapus"
+ *       400:
+ *         description: Cannot delete status that is being used
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ */
+router.delete('/statuses/:id', authenticateToken, taskController.deleteTaskStatus);
+
 router.get('/:id', authenticateToken, taskController.getTaskById);
 
 /**
@@ -238,6 +434,135 @@ router.get('/:id', authenticateToken, taskController.getTaskById);
  *         $ref: '#/components/responses/ForbiddenError'
  */
 router.put('/:id', authenticateToken, validate(schemas.updateTask), taskController.updateTask);
+
+/**
+ * @swagger
+ * /api/tasks/{id}/status:
+ *   put:
+ *     summary: Update task status (for Kanban)
+ *     tags: [Tasks]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Task ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - status_id
+ *             properties:
+ *               status_id:
+ *                 type: string
+ *                 format: uuid
+ *                 description: New status ID
+ *     responses:
+ *       200:
+ *         description: Task status updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Status task berhasil diupdate"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       format: uuid
+ *                     title:
+ *                       type: string
+ *                     status_id:
+ *                       type: string
+ *                       format: uuid
+ *                     updated_at:
+ *                       type: string
+ *                       format: date-time
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ */
+router.put('/:id/status', authenticateToken, taskController.updateTaskStatusKanban);
+
+/**
+ * @swagger
+ * /api/tasks/project/{projectId}/order:
+ *   put:
+ *     summary: Update task order (for Kanban reordering)
+ *     tags: [Tasks]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Project ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - tasks
+ *             properties:
+ *               tasks:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       format: uuid
+ *                     position:
+ *                       type: integer
+ *     responses:
+ *       200:
+ *         description: Task order updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Urutan tasks berhasil diupdate"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     updated_count:
+ *                       type: integer
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ */
+router.put('/project/:projectId/order', authenticateToken, taskController.updateTaskOrder);
 
 /**
  * @swagger
@@ -626,237 +951,5 @@ router.delete('/:id/attachments/:attachmentId', authenticateToken, taskControlle
  *         $ref: '#/components/responses/ForbiddenError'
  */
 router.get('/:id/comments', authenticateToken, taskController.getTaskComments);
-
-/**
- * @swagger
- * /api/tasks/statuses/project/{projectId}:
- *   get:
- *     summary: Get task statuses for a project
- *     tags: [Task Statuses]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: projectId
- *         required: true
- *         schema:
- *           type: string
- *           format: uuid
- *         description: Project ID
- *     responses:
- *       200:
- *         description: List of task statuses
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 data:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       id:
- *                         type: string
- *                         format: uuid
- *                       name:
- *                         type: string
- *                       color:
- *                         type: string
- *                       position:
- *                         type: integer
- *                       is_default:
- *                         type: boolean
- *                       created_at:
- *                         type: string
- *                         format: date-time
- *       401:
- *         $ref: '#/components/responses/UnauthorizedError'
- *       403:
- *         $ref: '#/components/responses/ForbiddenError'
- */
-router.get('/statuses/project/:projectId', authenticateToken, taskController.getTaskStatuses);
-
-/**
- * @swagger
- * /api/tasks/statuses:
- *   post:
- *     summary: Create task status
- *     tags: [Task Statuses]
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - name
- *               - project_id
- *             properties:
- *               name:
- *                 type: string
- *                 example: "In Review"
- *               color:
- *                 type: string
- *                 default: "#6B7280"
- *                 example: "#F59E0B"
- *               position:
- *                 type: integer
- *                 default: 0
- *               project_id:
- *                 type: string
- *                 format: uuid
- *     responses:
- *       201:
- *         description: Task status created successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 message:
- *                   type: string
- *                   example: "Status berhasil dibuat"
- *                 data:
- *                   type: object
- *                   properties:
- *                     id:
- *                       type: string
- *                       format: uuid
- *                     name:
- *                       type: string
- *                     color:
- *                       type: string
- *                     position:
- *                       type: integer
- *                     is_default:
- *                       type: boolean
- *                     created_at:
- *                       type: string
- *                       format: date-time
- *       400:
- *         $ref: '#/components/responses/ValidationError'
- *       401:
- *         $ref: '#/components/responses/UnauthorizedError'
- *       403:
- *         $ref: '#/components/responses/ForbiddenError'
- */
-router.post('/statuses', authenticateToken, validate(schemas.createTaskStatus), taskController.createTaskStatus);
-
-/**
- * @swagger
- * /api/tasks/statuses/{id}:
- *   put:
- *     summary: Update task status
- *     tags: [Task Statuses]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *           format: uuid
- *         description: Status ID
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               name:
- *                 type: string
- *               color:
- *                 type: string
- *               position:
- *                 type: integer
- *     responses:
- *       200:
- *         description: Task status updated successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 message:
- *                   type: string
- *                   example: "Status berhasil diupdate"
- *                 data:
- *                   type: object
- *                   properties:
- *                     id:
- *                       type: string
- *                       format: uuid
- *                     name:
- *                       type: string
- *                     color:
- *                       type: string
- *                     position:
- *                       type: integer
- *                     is_default:
- *                       type: boolean
- *                     created_at:
- *                       type: string
- *                       format: date-time
- *       400:
- *         $ref: '#/components/responses/ValidationError'
- *       401:
- *         $ref: '#/components/responses/UnauthorizedError'
- *       403:
- *         $ref: '#/components/responses/ForbiddenError'
- */
-router.put('/statuses/:id', authenticateToken, validate(schemas.updateTaskStatus), taskController.updateTaskStatus);
-
-/**
- * @swagger
- * /api/tasks/statuses/{id}:
- *   delete:
- *     summary: Delete task status
- *     tags: [Task Statuses]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *           format: uuid
- *         description: Status ID
- *     responses:
- *       200:
- *         description: Task status deleted successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 message:
- *                   type: string
- *                   example: "Status berhasil dihapus"
- *       400:
- *         description: Cannot delete status that is being used
- *       401:
- *         $ref: '#/components/responses/UnauthorizedError'
- *       403:
- *         $ref: '#/components/responses/ForbiddenError'
- */
-router.delete('/statuses/:id', authenticateToken, taskController.deleteTaskStatus);
 
 module.exports = router;

@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react'
-import { Plus, FolderOpen, Calendar, Users } from 'lucide-react'
+import { Plus, FolderOpen, Calendar, Users, Edit, Trash2 } from 'lucide-react'
 import Button from '../components/Button'
 import LoadingSpinner from '../components/LoadingSpinner'
+import ProjectModal from '../components/ProjectModal'
 import { projectsAPI } from '../services/api'
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState([])
   const [loading, setLoading] = useState(true)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [selectedProject, setSelectedProject] = useState(null)
 
   useEffect(() => {
     const fetchProjects = async () => {
@@ -23,6 +26,20 @@ export default function ProjectsPage() {
 
     fetchProjects()
   }, [])
+
+  const handleCreateProject = () => {
+    setSelectedProject(null)
+    setIsModalOpen(true)
+  }
+
+  const handleEditProject = (project) => {
+    setSelectedProject(project)
+    setIsModalOpen(true)
+  }
+
+  const handleModalSuccess = () => {
+    fetchProjects()
+  }
 
   if (loading) {
     return (
@@ -43,7 +60,7 @@ export default function ProjectsPage() {
             Kelola dan pantau progress proyek Anda.
           </p>
         </div>
-        <Button>
+        <Button onClick={handleCreateProject}>
           <Plus className="h-4 w-4 mr-2" />
           Buat Proyek
         </Button>
@@ -56,7 +73,7 @@ export default function ProjectsPage() {
           <p className="text-gray-500 mb-6">
             Buat proyek pertama Anda untuk mulai mengorganisir tugas dan tim.
           </p>
-          <Button>
+          <Button onClick={handleCreateProject}>
             <Plus className="h-4 w-4 mr-2" />
             Buat Proyek Pertama
           </Button>
@@ -64,7 +81,11 @@ export default function ProjectsPage() {
       ) : (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {projects.map((project) => (
-            <div key={project.id} className="card hover:shadow-md transition-shadow">
+            <div 
+              key={project.id} 
+              className="card hover:shadow-md transition-shadow cursor-pointer"
+              onClick={() => window.location.href = `/projects/${project.id}`}
+            >
               <div className="card-body">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
@@ -101,9 +122,20 @@ export default function ProjectsPage() {
                       <Calendar className="h-4 w-4 mr-1" />
                       {project.end_date ? new Date(project.end_date).toLocaleDateString('id-ID') : 'Tanpa deadline'}
                     </div>
-                    <div className="flex items-center">
-                      <Users className="h-4 w-4 mr-1" />
-                      {project.team_name || 'Tanpa tim'}
+                    <div className="flex items-center space-x-2">
+                      <div className="flex items-center">
+                        <Users className="h-4 w-4 mr-1" />
+                        {project.team_name || 'Tanpa tim'}
+                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleEditProject(project)
+                        }}
+                        className="p-1 text-gray-400 hover:text-blue-600"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -112,6 +144,13 @@ export default function ProjectsPage() {
           ))}
         </div>
       )}
+
+      <ProjectModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        project={selectedProject}
+        onSuccess={handleModalSuccess}
+      />
     </div>
   )
 }

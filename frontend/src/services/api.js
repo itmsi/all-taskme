@@ -33,6 +33,24 @@ api.interceptors.response.use(
       localStorage.removeItem('token')
       window.location.href = '/auth/login'
     }
+    
+    // Handle rate limiting (disable retry in development)
+    if (error.response?.status === 429) {
+      console.warn('Rate limit exceeded. Please try again later.')
+      
+      // Only retry in production, not in development
+      if (import.meta.env.PROD) {
+        const retryAfter = error.response.headers['retry-after'] || 1
+        console.warn(`Retrying after ${retryAfter} seconds...`)
+        
+        return new Promise((resolve) => {
+          setTimeout(() => {
+            resolve(api.request(error.config))
+          }, retryAfter * 1000)
+        })
+      }
+    }
+    
     return Promise.reject(error)
   }
 )
@@ -99,6 +117,8 @@ export const tasksAPI = {
   createTaskStatus: (statusData) => api.post('/tasks/statuses', statusData),
   updateTaskStatus: (id, statusData) => api.put(`/tasks/statuses/${id}`, statusData),
   deleteTaskStatus: (id) => api.delete(`/tasks/statuses/${id}`),
+  updateTaskStatusKanban: (id, statusId) => api.put(`/tasks/${id}/status`, { status_id: statusId }),
+  updateTaskOrder: (projectId, tasks) => api.put(`/tasks/project/${projectId}/order`, { tasks }),
 }
 
 // Notifications API

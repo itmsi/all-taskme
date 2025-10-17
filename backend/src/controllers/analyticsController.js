@@ -3,23 +3,26 @@ const { query } = require('../database/connection');
 // Get project analytics
 const getProjectAnalytics = async (req, res) => {
   try {
-    const projectId = req.params.projectId;
+    const projectId = req.params.id;
     const userId = req.user.id;
+    const userRole = req.user.role;
     const { period = '30' } = req.query; // days
 
-    // Check if user has access to this project
-    const accessCheck = await query(`
-      SELECT p.id FROM projects p
-      LEFT JOIN project_collaborators pc ON p.id = pc.project_id
-      WHERE p.id = $1 AND (p.created_by = $2 OR pc.user_id = $2)
-      LIMIT 1
-    `, [projectId, userId]);
+    // Check if user has access to this project (admin can access all projects)
+    if (userRole !== 'admin') {
+      const accessCheck = await query(`
+        SELECT p.id FROM projects p
+        LEFT JOIN project_collaborators pc ON p.id = pc.project_id
+        WHERE p.id = $1 AND (p.created_by = $2 OR pc.user_id = $2)
+        LIMIT 1
+      `, [projectId, userId]);
 
-    if (accessCheck.rows.length === 0) {
-      return res.status(403).json({
-        success: false,
-        message: 'Akses ditolak ke project ini'
-      });
+      if (accessCheck.rows.length === 0) {
+        return res.status(403).json({
+          success: false,
+          message: 'Akses ditolak ke project ini'
+        });
+      }
     }
 
     // Get task statistics
@@ -44,7 +47,7 @@ const getProjectAnalytics = async (req, res) => {
       FROM tasks t
       LEFT JOIN task_statuses ts ON t.status_id = ts.id
       WHERE t.project_id = $1
-      GROUP BY ts.name, ts.color
+      GROUP BY ts.name, ts.color, ts.position
       ORDER BY ts.position
     `, [projectId]);
 
@@ -117,25 +120,28 @@ const getMemberAnalytics = async (req, res) => {
   try {
     const memberId = req.params.memberId;
     const userId = req.user.id;
+    const userRole = req.user.role;
     const { period = '30' } = req.query;
 
-    // Check if user has access to this member's data
-    const accessCheck = await query(`
-      SELECT u.id FROM users u
-      JOIN team_members tm ON u.id = tm.user_id
-      JOIN teams t ON tm.team_id = t.id
-      WHERE u.id = $1 AND (
-        t.leader_id = $2 OR 
-        EXISTS (SELECT 1 FROM team_members tm2 WHERE tm2.team_id = t.id AND tm2.user_id = $2)
-      )
-      LIMIT 1
-    `, [memberId, userId]);
+    // Check if user has access to this member's data (admin can access all members)
+    if (userRole !== 'admin') {
+      const accessCheck = await query(`
+        SELECT u.id FROM users u
+        JOIN team_members tm ON u.id = tm.user_id
+        JOIN teams t ON tm.team_id = t.id
+        WHERE u.id = $1 AND (
+          t.leader_id = $2 OR 
+          EXISTS (SELECT 1 FROM team_members tm2 WHERE tm2.team_id = t.id AND tm2.user_id = $2)
+        )
+        LIMIT 1
+      `, [memberId, userId]);
 
-    if (accessCheck.rows.length === 0) {
-      return res.status(403).json({
-        success: false,
-        message: 'Akses ditolak ke data member ini'
-      });
+      if (accessCheck.rows.length === 0) {
+        return res.status(403).json({
+          success: false,
+          message: 'Akses ditolak ke data member ini'
+        });
+      }
     }
 
     // Get member's task statistics
@@ -238,21 +244,24 @@ const getTeamAnalytics = async (req, res) => {
   try {
     const teamId = req.params.teamId;
     const userId = req.user.id;
+    const userRole = req.user.role;
     const { period = '30' } = req.query;
 
-    // Check if user has access to this team
-    const accessCheck = await query(`
-      SELECT t.id FROM teams t
-      LEFT JOIN team_members tm ON t.id = tm.team_id
-      WHERE t.id = $1 AND (t.leader_id = $2 OR tm.user_id = $2)
-      LIMIT 1
-    `, [teamId, userId]);
+    // Check if user has access to this team (admin can access all teams)
+    if (userRole !== 'admin') {
+      const accessCheck = await query(`
+        SELECT t.id FROM teams t
+        LEFT JOIN team_members tm ON t.id = tm.team_id
+        WHERE t.id = $1 AND (t.leader_id = $2 OR tm.user_id = $2)
+        LIMIT 1
+      `, [teamId, userId]);
 
-    if (accessCheck.rows.length === 0) {
-      return res.status(403).json({
-        success: false,
-        message: 'Akses ditolak ke team ini'
-      });
+      if (accessCheck.rows.length === 0) {
+        return res.status(403).json({
+          success: false,
+          message: 'Akses ditolak ke team ini'
+        });
+      }
     }
 
     // Get team project statistics
