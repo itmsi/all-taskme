@@ -1,0 +1,141 @@
+### TaskMe API Testing
+### Gunakan file ini untuk testing API dengan VS Code REST Client extension
+
+@baseUrl = http://localhost:9561/api
+@token = your-jwt-token-here
+
+### Health Check
+GET http://localhost:9561/health
+
+### Register User
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "username": "testuser",
+  "email": "test@example.com",
+  "password": "password123",
+  "full_name": "Test User"
+}
+
+### Login User
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "password": "password123"
+}
+
+### Get Profile (requires token)
+GET {{baseUrl}}/auth/me
+Authorization: Bearer {{token}}
+
+### Update Profile (requires token)
+PUT {{baseUrl}}/users/profile
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "full_name": "Updated Test User",
+  "avatar_url": "https://example.com/avatar.jpg"
+}
+
+### Get Users (requires token)
+GET {{baseUrl}}/users
+Authorization: Bearer {{token}}
+
+### Create Team (requires token)
+POST {{baseUrl}}/teams
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Development Team",
+  "description": "Team untuk pengembangan aplikasi"
+}
+
+### Get User Teams (requires token)
+GET {{baseUrl}}/teams
+Authorization: Bearer {{token}}
+
+### Get Team by ID (requires token)
+GET {{baseUrl}}/teams/team-id-here
+Authorization: Bearer {{token}}
+
+### Get Team Members (requires token)
+GET {{baseUrl}}/teams/team-id-here/members
+Authorization: Bearer {{token}}
+
+### Add Team Member (requires token)
+POST {{baseUrl}}/teams/team-id-here/members
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "user_id": "user-id-here",
+  "role": "member"
+}
+
+### Create Project (requires token)
+POST {{baseUrl}}/projects
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Sample Project",
+  "description": "Proyek sample untuk testing",
+  "team_id": "team-id-here",
+  "start_date": "2024-01-01",
+  "end_date": "2024-12-31"
+}
+
+### Get User Projects (requires token)
+GET {{baseUrl}}/projects
+Authorization: Bearer {{token}}
+
+### Get Project Tasks (requires token)
+GET {{baseUrl}}/tasks/project/project-id-here
+Authorization: Bearer {{token}}
+
+### Create Task (requires token)
+POST {{baseUrl}}/tasks/project/project-id-here
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "title": "Sample Task",
+  "description": "Tugas sample untuk testing",
+  "priority": "medium",
+  "estimated_hours": 8
+}
+
+### Get Task Statuses (requires token)
+GET {{baseUrl}}/tasks/statuses/project/project-id-here
+Authorization: Bearer {{token}}
+
+### Get Notifications (requires token)
+GET {{baseUrl}}/notifications
+Authorization: Bearer {{token}}
+
+### Get Unread Count (requires token)
+GET {{baseUrl}}/notifications/unread-count
+Authorization: Bearer {{token}}
+
+### Get Dashboard Analytics (requires token)
+GET {{baseUrl}}/analytics/dashboard
+Authorization: Bearer {{token}}
+
+### Change Password (requires token)
+PUT {{baseUrl}}/auth/change-password
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "current_password": "password123",
+  "new_password": "newpassword123"
+}
+
+### Logout (requires token)
+POST {{baseUrl}}/auth/logout
+Authorization: Bearer {{token}}

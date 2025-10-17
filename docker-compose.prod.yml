@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: taskme_postgres_prod
+    environment:
+      POSTGRES_DB: taskme
+      POSTGRES_USER: taskme_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - taskme_network
+    restart: unless-stopped
+    ports:
+      - "9563:5432"
+
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+    container_name: taskme_backend_prod
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://taskme_user:${DB_PASSWORD}@postgres:5432/taskme
+      JWT_SECRET: ${JWT_SECRET}
+      PORT: 5000
+    depends_on:
+      - postgres
+    networks:
+      - taskme_network
+    restart: unless-stopped
+    ports:
+      - "9561:5000"
+
+  # Frontend React App
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+    container_name: taskme_frontend_prod
+    environment:
+      VITE_API_URL: ${API_URL}
+    depends_on:
+      - backend
+    networks:
+      - taskme_network
+    restart: unless-stopped
+    ports:
+      - "9562:80"
+
+volumes:
+  postgres_data:
+
+networks:
+  taskme_network:
+    driver: bridge
