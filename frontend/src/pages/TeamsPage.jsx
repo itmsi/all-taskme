@@ -1,9 +1,38 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Plus, Users, Crown, User } from 'lucide-react'
 import Button from '../components/Button'
+import LoadingSpinner from '../components/LoadingSpinner'
+import { teamsAPI } from '../services/api'
 
 export default function TeamsPage() {
-  const [teams] = useState([])
+  const [teams, setTeams] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchTeams = async () => {
+      try {
+        setLoading(true)
+        const response = await teamsAPI.getUserTeams()
+        setTeams(response.data.teams || [])
+      } catch (error) {
+        console.error('Error fetching teams:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchTeams()
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="p-6">
+        <div className="flex items-center justify-center min-h-96">
+          <LoadingSpinner size="lg" />
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="p-6">

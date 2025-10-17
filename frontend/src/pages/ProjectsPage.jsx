@@ -1,9 +1,38 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Plus, FolderOpen, Calendar, Users } from 'lucide-react'
 import Button from '../components/Button'
+import LoadingSpinner from '../components/LoadingSpinner'
+import { projectsAPI } from '../services/api'
 
 export default function ProjectsPage() {
-  const [projects] = useState([])
+  const [projects, setProjects] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        setLoading(true)
+        const response = await projectsAPI.getUserProjects()
+        setProjects(response.data.data || [])
+      } catch (error) {
+        console.error('Error fetching projects:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchProjects()
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="p-6">
+        <div className="flex items-center justify-center min-h-96">
+          <LoadingSpinner size="lg" />
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="p-6">
@@ -70,11 +99,11 @@ export default function ProjectsPage() {
                   <div className="flex items-center justify-between text-sm text-gray-500">
                     <div className="flex items-center">
                       <Calendar className="h-4 w-4 mr-1" />
-                      {project.endDate ? new Date(project.endDate).toLocaleDateString('id-ID') : 'Tanpa deadline'}
+                      {project.end_date ? new Date(project.end_date).toLocaleDateString('id-ID') : 'Tanpa deadline'}
                     </div>
                     <div className="flex items-center">
                       <Users className="h-4 w-4 mr-1" />
-                      {project.teamName}
+                      {project.team_name || 'Tanpa tim'}
                     </div>
                   </div>
                 </div>

@@ -3,18 +3,37 @@ const { query, transaction } = require('../database/connection');
 const getUserTeams = async (req, res) => {
   try {
     const userId = req.user.id;
+    const userRole = req.user.role;
 
-    const result = await query(
-      `SELECT t.id, t.name, t.description, t.leader_id, t.created_at, t.updated_at,
-              tm.role as user_role, tm.joined_at,
-              u.username as leader_username, u.full_name as leader_name
-       FROM teams t
-       JOIN team_members tm ON t.id = tm.team_id
-       LEFT JOIN users u ON t.leader_id = u.id
-       WHERE tm.user_id = $1
-       ORDER BY t.created_at DESC`,
-      [userId]
-    );
+    let query_sql, params;
+
+    if (userRole === 'admin') {
+      // Admin can see all teams
+      query_sql = `
+        SELECT t.id, t.name, t.description, t.leader_id, t.created_at, t.updated_at,
+               'admin' as user_role, t.created_at as joined_at,
+               u.username as leader_username, u.full_name as leader_name
+        FROM teams t
+        LEFT JOIN users u ON t.leader_id = u.id
+        ORDER BY t.created_at DESC
+      `;
+      params = [];
+    } else {
+      // Regular users can only see teams they're members of
+      query_sql = `
+        SELECT t.id, t.name, t.description, t.leader_id, t.created_at, t.updated_at,
+               tm.role as user_role, tm.joined_at,
+               u.username as leader_username, u.full_name as leader_name
+        FROM teams t
+        JOIN team_members tm ON t.id = tm.team_id
+        LEFT JOIN users u ON t.leader_id = u.id
+        WHERE tm.user_id = $1
+        ORDER BY t.created_at DESC
+      `;
+      params = [userId];
+    }
+
+    const result = await query(query_sql, params);
 
     res.json({
       success: true,

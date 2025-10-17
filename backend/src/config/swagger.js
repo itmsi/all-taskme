@@ -167,6 +167,162 @@ const options = {
             }
           }
         },
+        TaskStatus: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'string',
+              format: 'uuid'
+            },
+            name: {
+              type: 'string'
+            },
+            color: {
+              type: 'string'
+            },
+            position: {
+              type: 'integer'
+            },
+            project_id: {
+              type: 'string',
+              format: 'uuid'
+            },
+            is_default: {
+              type: 'boolean'
+            },
+            created_at: {
+              type: 'string',
+              format: 'date-time'
+            }
+          }
+        },
+        Notification: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'string',
+              format: 'uuid'
+            },
+            title: {
+              type: 'string'
+            },
+            message: {
+              type: 'string'
+            },
+            type: {
+              type: 'string'
+            },
+            is_read: {
+              type: 'boolean'
+            },
+            related_id: {
+              type: 'string',
+              format: 'uuid'
+            },
+            related_type: {
+              type: 'string'
+            },
+            created_at: {
+              type: 'string',
+              format: 'date-time'
+            }
+          }
+        },
+        TeamMember: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'string',
+              format: 'uuid'
+            },
+            team_id: {
+              type: 'string',
+              format: 'uuid'
+            },
+            user_id: {
+              type: 'string',
+              format: 'uuid'
+            },
+            role: {
+              type: 'string',
+              enum: ['leader', 'member', 'viewer']
+            },
+            joined_at: {
+              type: 'string',
+              format: 'date-time'
+            }
+          }
+        },
+        ProjectCollaborator: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'string',
+              format: 'uuid'
+            },
+            project_id: {
+              type: 'string',
+              format: 'uuid'
+            },
+            user_id: {
+              type: 'string',
+              format: 'uuid'
+            },
+            role: {
+              type: 'string',
+              enum: ['owner', 'collaborator', 'viewer']
+            },
+            added_at: {
+              type: 'string',
+              format: 'date-time'
+            }
+          }
+        },
+        TaskMember: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'string',
+              format: 'uuid'
+            },
+            task_id: {
+              type: 'string',
+              format: 'uuid'
+            },
+            user_id: {
+              type: 'string',
+              format: 'uuid'
+            },
+            assigned_at: {
+              type: 'string',
+              format: 'date-time'
+            }
+          }
+        },
+        TaskComment: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'string',
+              format: 'uuid'
+            },
+            task_id: {
+              type: 'string',
+              format: 'uuid'
+            },
+            user_id: {
+              type: 'string',
+              format: 'uuid'
+            },
+            message: {
+              type: 'string'
+            },
+            created_at: {
+              type: 'string',
+              format: 'date-time'
+            }
+          }
+        },
         Error: {
           type: 'object',
           properties: {

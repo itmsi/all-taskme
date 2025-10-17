@@ -1,7 +1,10 @@
+import { useState, useEffect } from 'react'
 import { Users, FolderOpen, CheckSquare, TrendingUp } from 'lucide-react'
+import { teamsAPI, projectsAPI, tasksAPI } from '../services/api'
+import LoadingSpinner from '../components/LoadingSpinner'
 
 export default function DashboardPage() {
-  const stats = [
+  const [stats, setStats] = useState([
     {
       name: 'Total Tim',
       value: '0',
@@ -26,7 +29,87 @@ export default function DashboardPage() {
       icon: TrendingUp,
       color: 'bg-purple-500'
     }
-  ]
+  ])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true)
+        
+        // Fetch teams, projects, and calculate stats
+        const [teamsResponse, projectsResponse] = await Promise.all([
+          teamsAPI.getUserTeams(),
+          projectsAPI.getUserProjects()
+        ])
+
+        const teams = teamsResponse.data.teams || []
+        const projects = projectsResponse.data.data || []
+        
+        // Calculate total tasks from all projects
+        let totalTasks = 0
+        let totalProgress = 0
+        
+        for (const project of projects) {
+          try {
+            const tasksResponse = await tasksAPI.getProjectTasks(project.id)
+            const tasks = tasksResponse.data.data || []
+            totalTasks += tasks.length
+            
+            // Calculate project progress
+            totalProgress += project.progress || 0
+          } catch (error) {
+            console.error(`Error fetching tasks for project ${project.id}:`, error)
+          }
+        }
+
+        const avgProgress = projects.length > 0 ? Math.round(totalProgress / projects.length) : 0
+
+        setStats([
+          {
+            name: 'Total Tim',
+            value: teams.length.toString(),
+            icon: Users,
+            color: 'bg-blue-500'
+          },
+          {
+            name: 'Total Proyek',
+            value: projects.length.toString(),
+            icon: FolderOpen,
+            color: 'bg-green-500'
+          },
+          {
+            name: 'Total Tugas',
+            value: totalTasks.toString(),
+            icon: CheckSquare,
+            color: 'bg-yellow-500'
+          },
+          {
+            name: 'Progress',
+            value: `${avgProgress}%`,
+            icon: TrendingUp,
+            color: 'bg-purple-500'
+          }
+        ])
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchDashboardData()
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="p-6">
+        <div className="flex items-center justify-center min-h-96">
+          <LoadingSpinner size="lg" />
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="p-6">

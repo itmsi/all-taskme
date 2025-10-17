@@ -111,11 +111,17 @@ const updateProfile = async (req, res) => {
 const getUsers = async (req, res) => {
   try {
     const { search, page = 1, limit = 20 } = req.query;
+    const userRole = req.user.role;
     const offset = (page - 1) * limit;
 
     let whereClause = 'WHERE is_active = true';
     let values = [];
     let paramCount = 1;
+
+    // Admin can see all users, regular users can only see active users
+    if (userRole !== 'admin') {
+      whereClause += ' AND role != \'admin\'';
+    }
 
     if (search) {
       whereClause += ` AND (full_name ILIKE $${paramCount} OR username ILIKE $${paramCount})`;
