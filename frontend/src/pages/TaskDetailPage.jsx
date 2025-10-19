@@ -26,37 +26,9 @@ import Button from '../components/Button'
 import Input from '../components/Input'
 import LoadingSpinner from '../components/LoadingSpinner'
 import ImagePreviewModal from '../components/ImagePreviewModal'
+import RichTextEditor from '../components/RichTextEditor'
 import { tasksAPI, usersAPI } from '../services/api'
 import { useSocket } from '../contexts/SocketContext'
-
-// Simple Text Editor Component
-function TextEditor({ value, onChange, placeholder = "Tulis deskripsi task..." }) {
-  const textareaRef = useRef(null)
-
-  const handleInput = (e) => {
-    onChange(e.target.value)
-    // Auto resize
-    const textarea = textareaRef.current
-    if (textarea) {
-      textarea.style.height = 'auto'
-      textarea.style.height = textarea.scrollHeight + 'px'
-    }
-  }
-
-  return (
-    <div className="border border-gray-300 rounded-lg overflow-hidden">
-      <textarea
-        ref={textareaRef}
-        value={value}
-        onChange={handleInput}
-        placeholder={placeholder}
-        className="w-full p-4 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-        rows={6}
-        style={{ minHeight: '150px' }}
-      />
-    </div>
-  )
-}
 
 // File Upload Component
 function FileUpload({ taskId, attachments, onUpload, onDelete }) {
@@ -967,16 +939,18 @@ export default function TaskDetailPage() {
             <div className="card-body">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Description</h3>
               {isEditing ? (
-                <TextEditor
+                <RichTextEditor
                   value={editedTask.description || ''}
                   onChange={(value) => setEditedTask(prev => ({ ...prev, description: value }))}
                   placeholder="Tulis deskripsi task..."
+                  height="300px"
                 />
               ) : (
                 <div className="prose max-w-none">
-                  <p className="text-gray-700 whitespace-pre-wrap">
-                    {task.description || 'No description provided.'}
-                  </p>
+                  <div 
+                    className="text-gray-700"
+                    dangerouslySetInnerHTML={{ __html: task.description || '<p>No description provided.</p>' }}
+                  />
                 </div>
               )}
             </div>

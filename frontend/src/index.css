@@ -2,14 +2,67 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  html {
-    font-family: 'Inter', system-ui, sans-serif;
+/* Rich Text Editor Styles */
+.rich-text-editor {
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.rich-text-editor .w-md-editor {
+  background-color: white;
+}
+
+.rich-text-editor .w-md-editor-toolbar {
+  background-color: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.rich-text-editor .w-md-editor-text {
+  background-color: white;
+}
+
+.rich-text-editor .w-md-editor-text-input {
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.rich-text-editor .w-md-editor-text-input::placeholder {
+  color: #9ca3af;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .rich-text-editor .w-md-editor {
+    background-color: #1f2937;
+    border-color: #4b5563;
   }
   
-  body {
-    @apply bg-gray-50 text-gray-900;
+  .rich-text-editor .w-md-editor-toolbar {
+    background-color: #374151;
+    border-color: #4b5563;
   }
+  
+  .rich-text-editor .w-md-editor-text {
+    background-color: #1f2937;
+  }
+  
+  .rich-text-editor .w-md-editor-text-input {
+    color: #f9fafb;
+  }
+  
+  .rich-text-editor .w-md-editor-text-input::placeholder {
+    color: #6b7280;
+  }
+}
+
+html {
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+body {
+  @apply bg-gray-50 text-gray-900;
 }
 
 @layer components {
