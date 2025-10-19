@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback, memo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { 
   ArrowLeft, 
@@ -18,11 +18,14 @@ import {
   FileText,
   Image,
   Download,
-  Trash2
+  Trash2,
+  Eye,
+  Grid3X3
 } from 'lucide-react'
 import Button from '../components/Button'
 import Input from '../components/Input'
 import LoadingSpinner from '../components/LoadingSpinner'
+import ImagePreviewModal from '../components/ImagePreviewModal'
 import { tasksAPI, usersAPI } from '../services/api'
 import { useSocket } from '../contexts/SocketContext'
 
@@ -56,12 +59,34 @@ function TextEditor({ value, onChange, placeholder = "Tulis deskripsi task..." }
 }
 
 // File Upload Component
-function FileUpload({ files, onFilesChange, onFileRemove }) {
+function FileUpload({ taskId, attachments, onUpload, onDelete }) {
   const fileInputRef = useRef(null)
+  const [uploading, setUploading] = useState(false)
+  const [previewModalOpen, setPreviewModalOpen] = useState(false)
+  const [currentImageIndex, setCurrentImageIndex] = useState(0)
+  const [viewMode, setViewMode] = useState('list') // 'list' or 'grid'
+  const [imageLoadingStates, setImageLoadingStates] = useState({})
 
-  const handleFileSelect = (e) => {
-    const newFiles = Array.from(e.target.files)
-    onFilesChange([...files, ...newFiles])
+  const handleFileSelect = async (e) => {
+    const files = Array.from(e.target.files)
+    if (files.length === 0) return
+
+    setUploading(true)
+    try {
+      const formData = new FormData()
+      files.forEach(file => {
+        formData.append('attachments', file)
+      })
+
+      await onUpload(formData)
+      // Clear input
+      fileInputRef.current.value = ''
+    } catch (error) {
+      console.error('Upload error:', error)
+      alert('Gagal upload file. Silakan coba lagi.')
+    } finally {
+      setUploading(false)
+    }
   }
 
   const formatFileSize = (bytes) => {
@@ -72,17 +97,127 @@ function FileUpload({ files, onFilesChange, onFileRemove }) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
   }
 
+  const getFileIcon = (mimeType) => {
+    if (mimeType.startsWith('image/')) {
+      return <Image className="h-4 w-4 text-green-600" />
+    } else if (mimeType === 'application/pdf') {
+      return <FileText className="h-4 w-4 text-red-600" />
+    } else if (mimeType.includes('word') || mimeType.includes('document')) {
+      return <FileText className="h-4 w-4 text-blue-600" />
+    } else if (mimeType.includes('excel') || mimeType.includes('spreadsheet')) {
+      return <FileText className="h-4 w-4 text-green-600" />
+    } else {
+      return <FileText className="h-4 w-4 text-gray-600" />
+    }
+  }
+
+  const handleDownload = async (attachment) => {
+    try {
+      const response = await tasksAPI.downloadAttachment(taskId, attachment.id)
+      const blob = new Blob([response.data])
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = attachment.original_name
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+    } catch (error) {
+      console.error('Download error:', error)
+      alert('Gagal download file. Silakan coba lagi.')
+    }
+  }
+
+  const isImage = (mimeType) => mimeType.startsWith('image/')
+
+  const imageAttachments = useMemo(() => {
+    return attachments.filter(attachment => isImage(attachment.mime_type))
+  }, [attachments])
+
+  const imagesForModal = useMemo(() => {
+    const images = imageAttachments.map(img => ({
+      url: `/api/tasks/${taskId}/attachments/${img.id}/preview`,
+      name: img.original_name
+    }))
+    console.log('Images for modal:', images)
+    return images
+  }, [imageAttachments, taskId])
+
+  const handleImagePreview = useCallback((attachment) => {
+    const index = imageAttachments.findIndex(img => img.id === attachment.id)
+    setCurrentImageIndex(index)
+    setPreviewModalOpen(true)
+  }, [imageAttachments])
+
+  const handleClosePreview = () => {
+    setPreviewModalOpen(false)
+  }
+
+  const handleImageIndexChange = (index) => {
+    setCurrentImageIndex(index)
+  }
+
+  const handleImageLoad = (attachmentId) => {
+    console.log('Image loaded successfully for attachment:', attachmentId)
+    setImageLoadingStates(prev => ({ ...prev, [attachmentId]: 'loaded' }))
+  }
+
+  const handleImageError = (attachmentId) => {
+    console.error('Image load error for attachment:', attachmentId)
+    setImageLoadingStates(prev => ({ ...prev, [attachmentId]: 'error' }))
+  }
+
+  const handleImagePreviewWithIndex = useCallback((attachment, index) => {
+    setCurrentImageIndex(index)
+    setPreviewModalOpen(true)
+  }, [])
+
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h4 className="text-sm font-medium text-gray-900">File Attachments</h4>
+        <div className="flex items-center space-x-3">
+          <div>
+            <h4 className="text-sm font-medium text-gray-900">File Attachments</h4>
+            {attachments.length > 0 && (
+              <div className="flex items-center space-x-4 text-xs text-gray-500 mt-1">
+                <span>{attachments.length} files</span>
+                {imageAttachments.length > 0 && (
+                  <span>{imageAttachments.length} images</span>
+                )}
+                <span>
+                  {formatFileSize(attachments.reduce((total, att) => total + att.file_size, 0))} total
+                </span>
+              </div>
+            )}
+          </div>
+          {attachments.length > 0 && (
+            <div className="flex items-center space-x-1">
+              <button
+                onClick={() => setViewMode('list')}
+                className={`p-1 rounded ${viewMode === 'list' ? 'bg-blue-100 text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}
+                title="List View"
+              >
+                <FileText className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`p-1 rounded ${viewMode === 'grid' ? 'bg-blue-100 text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}
+                title="Grid View"
+              >
+                <Grid3X3 className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+        </div>
         <Button
           size="sm"
           variant="secondary"
           onClick={() => fileInputRef.current?.click()}
+          disabled={uploading}
         >
           <Plus className="h-4 w-4 mr-2" />
-          Add File
+          {uploading ? 'Uploading...' : 'Add File'}
         </Button>
       </div>
       
@@ -92,35 +227,299 @@ function FileUpload({ files, onFilesChange, onFileRemove }) {
         multiple
         onChange={handleFileSelect}
         className="hidden"
-        accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.gif"
+        accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.gif,.zip"
       />
 
-      {files.length > 0 && (
-        <div className="space-y-2">
-          {files.map((file, index) => (
-            <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <FileText className="h-4 w-4 text-blue-600" />
+      {attachments.length > 0 && (
+        <>
+          {viewMode === 'list' ? (
+            <>
+              <div className="space-y-3">
+                {attachments.map((attachment) => (
+                <div key={attachment.id} className="border border-gray-200 rounded-lg p-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start space-x-3 flex-1">
+                      <div className="p-2 bg-gray-100 rounded-lg">
+                        {getFileIcon(attachment.mime_type)}
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-gray-900">{attachment.original_name}</p>
+                        <p className="text-xs text-gray-500">{formatFileSize(attachment.file_size)}</p>
+                        <p className="text-xs text-gray-400">
+                          Uploaded by {attachment.uploaded_by_name || attachment.uploaded_by_username}
+                        </p>
+                        <p className="text-xs text-gray-400">
+                          {new Date(attachment.uploaded_at).toLocaleString('id-ID')}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      {isImage(attachment.mime_type) && (
+                        <button
+                          onClick={() => handleImagePreview(attachment)}
+                          className="p-1 text-gray-400 hover:text-green-600"
+                          title="Preview Image"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleDownload(attachment)}
+                        className="p-1 text-gray-400 hover:text-blue-600"
+                        title="Download"
+                      >
+                        <Download className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => onDelete(attachment.id)}
+                        className="p-1 text-gray-400 hover:text-red-600"
+                        title="Delete"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                  
+                  {/* Image Thumbnail */}
+                  {isImage(attachment.mime_type) && (
+                    <div className="mt-3">
+                      <div className="relative">
+                        {imageLoadingStates[attachment.id] !== 'loaded' && imageLoadingStates[attachment.id] !== 'error' && (
+                          <div className="absolute inset-0 bg-gray-100 rounded-lg flex items-center justify-center">
+                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                          </div>
+                        )}
+                        <img
+                          src={`/api/tasks/${taskId}/attachments/${attachment.id}/preview`}
+                          alt={attachment.original_name}
+                          className={`max-w-full h-32 object-cover rounded-lg border border-gray-200 cursor-pointer hover:opacity-80 transition-opacity ${
+                            imageLoadingStates[attachment.id] === 'loaded' ? 'opacity-100' : 'opacity-0'
+                          }`}
+                          onClick={() => handleImagePreview(attachment)}
+                          onLoad={() => {
+                            console.log('Image loaded:', `/api/tasks/${taskId}/attachments/${attachment.id}/preview`)
+                            handleImageLoad(attachment.id)
+                          }}
+                          onError={(e) => {
+                            console.error('Image error:', `/api/tasks/${taskId}/attachments/${attachment.id}/preview`, e)
+                            handleImageError(attachment.id)
+                          }}
+                        />
+                        {imageLoadingStates[attachment.id] === 'error' && (
+                          <div className="absolute inset-0 bg-gray-100 rounded-lg flex items-center justify-center">
+                            <div className="text-center text-gray-500">
+                              <Image className="h-6 w-6 mx-auto mb-1" />
+                              <p className="text-xs">Failed to load</p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-900">{file.name}</p>
-                  <p className="text-xs text-gray-500">{formatFileSize(file.size)}</p>
-                </div>
+              ))}
               </div>
-              <button
-                onClick={() => onFileRemove(index)}
-                className="p-1 text-gray-400 hover:text-red-600"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
-            </div>
-          ))}
-        </div>
+              <ImageGallery 
+                imageAttachments={imageAttachments}
+                taskId={taskId}
+                imageLoadingStates={imageLoadingStates}
+                onImageLoad={handleImageLoad}
+                onImageError={handleImageError}
+                onImagePreview={handleImagePreviewWithIndex}
+              />
+            </>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                {attachments.map((attachment) => (
+                  <div key={attachment.id} className="border border-gray-200 rounded-lg overflow-hidden">
+                    {isImage(attachment.mime_type) ? (
+                      <div className="relative group">
+                        {imageLoadingStates[attachment.id] !== 'loaded' && imageLoadingStates[attachment.id] !== 'error' && (
+                          <div className="absolute inset-0 bg-gray-100 flex items-center justify-center">
+                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                          </div>
+                        )}
+                        <img
+                          src={`/api/tasks/${taskId}/attachments/${attachment.id}/preview`}
+                          alt={attachment.original_name}
+                          className={`w-full h-32 object-cover cursor-pointer hover:opacity-80 transition-opacity ${
+                            imageLoadingStates[attachment.id] === 'loaded' ? 'opacity-100' : 'opacity-0'
+                          }`}
+                          onClick={() => handleImagePreview(attachment)}
+                          onLoad={() => handleImageLoad(attachment.id)}
+                          onError={() => handleImageError(attachment.id)}
+                        />
+                        {imageLoadingStates[attachment.id] === 'error' && (
+                          <div className="absolute inset-0 bg-gray-100 flex items-center justify-center">
+                            <div className="text-center text-gray-500">
+                              <Image className="h-6 w-6 mx-auto mb-1" />
+                              <p className="text-xs">Failed to load</p>
+                            </div>
+                          </div>
+                        )}
+                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 flex items-center justify-center">
+                          <div className="opacity-0 group-hover:opacity-100 transition-opacity flex space-x-1">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleImagePreview(attachment)
+                              }}
+                              className="p-1 bg-white bg-opacity-80 rounded-full hover:bg-opacity-100"
+                              title="Preview"
+                            >
+                              <Eye className="h-4 w-4 text-gray-700" />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleDownload(attachment)
+                              }}
+                              className="p-1 bg-white bg-opacity-80 rounded-full hover:bg-opacity-100"
+                              title="Download"
+                            >
+                              <Download className="h-4 w-4 text-gray-700" />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                onDelete(attachment.id)
+                              }}
+                              className="p-1 bg-white bg-opacity-80 rounded-full hover:bg-opacity-100"
+                              title="Delete"
+                            >
+                              <Trash2 className="h-4 w-4 text-red-600" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-3 text-center">
+                        <div className="p-2 bg-gray-100 rounded-lg mx-auto mb-2 w-fit">
+                          {getFileIcon(attachment.mime_type)}
+                        </div>
+                        <p className="text-xs font-medium text-gray-900 truncate">{attachment.original_name}</p>
+                        <p className="text-xs text-gray-500">{formatFileSize(attachment.file_size)}</p>
+                      </div>
+                    )}
+                    
+                    {/* File Info */}
+                    <div className="p-2 bg-gray-50">
+                      <p className="text-xs font-medium text-gray-900 truncate" title={attachment.original_name}>
+                        {attachment.original_name}
+                      </p>
+                      <p className="text-xs text-gray-500">{formatFileSize(attachment.file_size)}</p>
+                      {!isImage(attachment.mime_type) && (
+                        <div className="flex justify-center space-x-1 mt-2">
+                          <button
+                            onClick={() => handleDownload(attachment)}
+                            className="p-1 text-gray-400 hover:text-blue-600"
+                            title="Download"
+                          >
+                            <Download className="h-3 w-3" />
+                          </button>
+                          <button
+                            onClick={() => onDelete(attachment.id)}
+                            className="p-1 text-gray-400 hover:text-red-600"
+                            title="Delete"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+              ))}
+              </div>
+              <ImageGallery 
+                imageAttachments={imageAttachments}
+                taskId={taskId}
+                imageLoadingStates={imageLoadingStates}
+                onImageLoad={handleImageLoad}
+                onImageError={handleImageError}
+                onImagePreview={handleImagePreviewWithIndex}
+              />
+            </>
+          )}
+        </>
       )}
+
+      {/* Image Preview Modal */}
+      <ImagePreviewModal
+        isOpen={previewModalOpen}
+        onClose={handleClosePreview}
+        images={imagesForModal}
+        currentIndex={currentImageIndex}
+        onIndexChange={handleImageIndexChange}
+      />
     </div>
   )
 }
+
+// Image Gallery Component
+const ImageGallery = memo(function ImageGallery({ 
+  imageAttachments, 
+  taskId, 
+  imageLoadingStates, 
+  onImageLoad, 
+  onImageError, 
+  onImagePreview 
+}) {
+  if (imageAttachments.length === 0) return null
+
+  return (
+    <div className="mt-4">
+      <div className="flex items-center justify-between mb-3">
+        <h5 className="text-sm font-medium text-gray-700">Image Gallery ({imageAttachments.length})</h5>
+        <button
+          onClick={() => onImagePreview(imageAttachments[0], 0)}
+          className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+        >
+          View All
+        </button>
+      </div>
+      <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2">
+        {imageAttachments.slice(0, 8).map((attachment, index) => (
+          <div
+            key={attachment.id}
+            className="relative aspect-square rounded-lg overflow-hidden cursor-pointer group"
+            onClick={() => onImagePreview(attachment, index)}
+          >
+            {imageLoadingStates[attachment.id] !== 'loaded' && imageLoadingStates[attachment.id] !== 'error' && (
+              <div className="absolute inset-0 bg-gray-100 flex items-center justify-center">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+              </div>
+            )}
+            <img
+              src={`/api/tasks/${taskId}/attachments/${attachment.id}/preview`}
+              alt={attachment.original_name}
+              className={`w-full h-full object-cover hover:scale-105 transition-transform duration-200 ${
+                imageLoadingStates[attachment.id] === 'loaded' ? 'opacity-100' : 'opacity-0'
+              }`}
+              onLoad={() => onImageLoad(attachment.id)}
+              onError={() => onImageError(attachment.id)}
+            />
+            {imageLoadingStates[attachment.id] === 'error' && (
+              <div className="absolute inset-0 bg-gray-100 flex items-center justify-center">
+                <div className="text-center text-gray-500">
+                  <Image className="h-4 w-4 mx-auto mb-1" />
+                  <p className="text-xs">Failed</p>
+                </div>
+              </div>
+            )}
+            {index === 7 && imageAttachments.length > 8 && (
+              <div className="absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center">
+                <span className="text-white text-xs font-medium">
+                  +{imageAttachments.length - 8}
+                </span>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+})
 
 // Member Assignment Component
 function MemberAssignment({ members, assignedMembers, onMemberToggle, availableUsers }) {
@@ -293,7 +692,7 @@ export default function TaskDetailPage() {
   const [loading, setLoading] = useState(true)
   const [isEditing, setIsEditing] = useState(false)
   const [editedTask, setEditedTask] = useState({})
-  const [files, setFiles] = useState([])
+  const [attachments, setAttachments] = useState([])
   const [assignedMembers, setAssignedMembers] = useState([])
   const [availableUsers, setAvailableUsers] = useState([])
   const [messages, setMessages] = useState([])
@@ -304,10 +703,11 @@ export default function TaskDetailPage() {
       try {
         setLoading(true)
         
-        const [taskResponse, usersResponse, commentsResponse] = await Promise.all([
+        const [taskResponse, usersResponse, commentsResponse, attachmentsResponse] = await Promise.all([
           tasksAPI.getTaskById(id),
           usersAPI.getUsers(),
-          tasksAPI.getTaskComments(id)
+          tasksAPI.getTaskComments(id),
+          tasksAPI.getTaskAttachments(id)
         ])
         
         const taskData = taskResponse.data.data
@@ -322,6 +722,7 @@ export default function TaskDetailPage() {
         setAssignedMembers(taskData.members || [])
         setAvailableUsers(usersResponse.data.data || [])
         setMessages(commentsResponse.data.data.comments || [])
+        setAttachments(attachmentsResponse.data.data || [])
         
         // Get current user from localStorage
         const token = localStorage.getItem('token')
@@ -380,6 +781,12 @@ export default function TaskDetailPage() {
       }
     } catch (error) {
       console.error('Error updating task:', error)
+      // Show user-friendly error message
+      if (error.response?.data?.message) {
+        alert(`Error: ${error.response.data.message}`)
+      } else {
+        alert('Terjadi kesalahan saat mengupdate task. Silakan coba lagi.')
+      }
     }
   }
 
@@ -414,6 +821,28 @@ export default function TaskDetailPage() {
       }
     } catch (error) {
       console.error('Error sending message:', error)
+    }
+  }
+
+  const handleUploadAttachment = async (formData) => {
+    try {
+      const response = await tasksAPI.uploadAttachments(id, formData)
+      const newAttachments = response.data.data
+      
+      setAttachments(prev => [...newAttachments, ...prev])
+    } catch (error) {
+      console.error('Error uploading attachment:', error)
+      throw error
+    }
+  }
+
+  const handleDeleteAttachment = async (attachmentId) => {
+    try {
+      await tasksAPI.deleteAttachment(id, attachmentId)
+      setAttachments(prev => prev.filter(att => att.id !== attachmentId))
+    } catch (error) {
+      console.error('Error deleting attachment:', error)
+      alert('Gagal menghapus file. Silakan coba lagi.')
     }
   }
 
@@ -557,9 +986,10 @@ export default function TaskDetailPage() {
           <div className="card">
             <div className="card-body">
               <FileUpload
-                files={files}
-                onFilesChange={setFiles}
-                onFileRemove={(index) => setFiles(prev => prev.filter((_, i) => i !== index))}
+                taskId={id}
+                attachments={attachments}
+                onUpload={handleUploadAttachment}
+                onDelete={handleDeleteAttachment}
               />
             </div>
           </div>

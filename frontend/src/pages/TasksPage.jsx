@@ -254,7 +254,7 @@ export default function TasksPage() {
                   variant="secondary"
                   size="sm"
                   onClick={handleSelectAll}
-                  disabled={projects.length === 0}
+                  disabled={!projects || projects.length === 0}
                 >
                   Pilih Semua
                 </Button>
@@ -316,12 +316,12 @@ export default function TasksPage() {
 
               {isDropdownOpen && (
                 <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto">
-                  {projects.length === 0 ? (
+                  {!projects || projects.length === 0 ? (
                     <div className="px-4 py-3 text-gray-500 text-center">
                       Belum ada project yang tersedia
                     </div>
                   ) : (
-                    projects.map((project) => {
+                    (projects || []).map((project) => {
                       const isSelected = selectedProjects.some(p => p.id === project.id)
                       return (
                         <div

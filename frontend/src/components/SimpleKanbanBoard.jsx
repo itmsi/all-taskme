@@ -6,9 +6,11 @@ import { Edit, GripVertical } from 'lucide-react'
 function TaskItem({ task, onEdit }) {
   const navigate = useNavigate()
   const [isDragging, setIsDragging] = useState(false)
+  const [dragStartTime, setDragStartTime] = useState(0)
 
   const handleDragStart = (e) => {
     setIsDragging(true)
+    setDragStartTime(Date.now())
     e.dataTransfer.setData('text/plain', JSON.stringify({
       taskId: task.id,
       taskData: task
@@ -18,6 +20,15 @@ function TaskItem({ task, onEdit }) {
 
   const handleDragEnd = () => {
     setIsDragging(false)
+    setDragStartTime(0)
+  }
+
+  const handleClick = (e) => {
+    // Only navigate if not dragging and enough time has passed since drag start
+    const timeSinceDragStart = Date.now() - dragStartTime
+    if (!isDragging && timeSinceDragStart > 200) {
+      navigate(`/tasks/${task.id}`)
+    }
   }
 
   return (
@@ -25,7 +36,7 @@ function TaskItem({ task, onEdit }) {
       draggable
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
-      onClick={() => navigate(`/tasks/${task.id}`)}
+      onClick={handleClick}
       className={`bg-white rounded-lg p-3 shadow-sm cursor-pointer hover:shadow-md transition-shadow border border-gray-100 ${
         isDragging ? 'opacity-50' : ''
       }`}

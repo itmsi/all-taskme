@@ -111,8 +111,12 @@ export const tasksAPI = {
   getTaskMembers: (id) => api.get(`/tasks/${id}/members`),
   addTaskMember: (id, memberData) => api.post(`/tasks/${id}/members`, memberData),
   removeTaskMember: (id, userId) => api.delete(`/tasks/${id}/members/${userId}`),
+  getTaskAttachments: (id) => api.get(`/tasks/${id}/attachments`),
   uploadAttachments: (id, formData) => api.post(`/tasks/${id}/attachments`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
+  }),
+  downloadAttachment: (id, attachmentId) => api.get(`/tasks/${id}/attachments/${attachmentId}/download`, {
+    responseType: 'blob'
   }),
   deleteAttachment: (id, attachmentId) => api.delete(`/tasks/${id}/attachments/${attachmentId}`),
   getTaskComments: (id) => api.get(`/tasks/${id}/comments`),

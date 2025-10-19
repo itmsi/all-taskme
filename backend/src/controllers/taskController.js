@@ -173,44 +173,47 @@ const getTaskById = async (req, res) => {
       }
     }
 
-    const result = await query(`
+    // First get basic task info
+    const taskResult = await query(`
       SELECT 
         t.id, t.title, t.description, t.priority, t.due_date, t.estimated_hours, t.actual_hours,
         t.created_at, t.updated_at,
         ts.id as status_id, ts.name as status_name, ts.color as status_color,
         p.id as project_id, p.name as project_name,
-        u.username as created_by_username, u.full_name as created_by_name,
-        ARRAY_AGG(
-          DISTINCT JSON_BUILD_OBJECT(
-            'id', tm_member.id,
-            'username', u_member.username,
-            'full_name', u_member.full_name,
-            'avatar_url', u_member.avatar_url,
-            'assigned_at', tm.assigned_at
-          )
-        ) FILTER (WHERE tm_member.id IS NOT NULL) as members
+        u.username as created_by_username, u.full_name as created_by_name
       FROM tasks t
       LEFT JOIN task_statuses ts ON t.status_id = ts.id
       LEFT JOIN projects p ON t.project_id = p.id
       LEFT JOIN users u ON t.created_by = u.id
-      LEFT JOIN task_members tm ON t.id = tm.task_id
-      LEFT JOIN users tm_member ON tm.user_id = tm_member.id
-      LEFT JOIN users u_member ON tm.user_id = u_member.id
       WHERE t.id = $1
-      GROUP BY t.id, t.title, t.description, t.priority, t.due_date, t.estimated_hours, t.actual_hours,
-               t.created_at, t.updated_at, ts.id, ts.name, ts.color, p.id, p.name, u.username, u.full_name
     `, [taskId]);
 
-    if (result.rows.length === 0) {
+    if (taskResult.rows.length === 0) {
       return res.status(404).json({
         success: false,
         message: 'Task tidak ditemukan'
       });
     }
 
+    // Then get task members
+    const membersResult = await query(`
+      SELECT 
+        tm.user_id as id,
+        u.username,
+        u.full_name,
+        u.avatar_url,
+        tm.assigned_at
+      FROM task_members tm
+      LEFT JOIN users u ON tm.user_id = u.id
+      WHERE tm.task_id = $1
+    `, [taskId]);
+
+    const task = taskResult.rows[0];
+    task.members = membersResult.rows;
+
     res.json({
       success: true,
-      data: result.rows[0]
+      data: task
     });
   } catch (error) {
     console.error('Get task by ID error:', error);
@@ -272,12 +275,12 @@ const updateTask = async (req, res) => {
     }
     if (due_date !== undefined) {
       updateFields.push(`due_date = $${paramCount}`);
-      params.push(due_date);
+      params.push(due_date === '' ? null : due_date);
       paramCount++;
     }
     if (estimated_hours !== undefined) {
       updateFields.push(`estimated_hours = $${paramCount}`);
-      params.push(estimated_hours);
+      params.push(estimated_hours === '' ? null : estimated_hours);
       paramCount++;
     }
     if (actual_hours !== undefined) {
@@ -669,7 +672,7 @@ const removeTaskMember = async (req, res) => {
   }
 };
 
-// Upload attachments (placeholder - requires multer setup)
+// Upload attachments
 const uploadAttachments = async (req, res) => {
   try {
     const taskId = req.params.id;
@@ -692,17 +695,220 @@ const uploadAttachments = async (req, res) => {
       });
     }
 
-    // This would require multer middleware setup
-    // For now, return a placeholder response
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Tidak ada file yang diupload'
+      });
+    }
+
+    const uploadedFiles = [];
+    
+    for (const file of req.files) {
+      const result = await query(`
+        INSERT INTO task_attachments (task_id, filename, original_name, file_path, file_size, mime_type, uploaded_by)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        RETURNING id, filename, original_name, file_size, mime_type, uploaded_at
+      `, [
+        taskId,
+        file.filename,
+        file.originalname,
+        file.path,
+        file.size,
+        file.mimetype,
+        userId
+      ]);
+
+      uploadedFiles.push(result.rows[0]);
+    }
+
     res.json({
       success: true,
-      message: 'Upload attachment feature akan segera tersedia'
+      message: `${uploadedFiles.length} file berhasil diupload`,
+      data: uploadedFiles
     });
   } catch (error) {
     console.error('Upload attachments error:', error);
     res.status(500).json({
       success: false,
       message: 'Gagal upload attachment'
+    });
+  }
+};
+
+// Get task attachments
+const getTaskAttachments = async (req, res) => {
+  try {
+    const taskId = req.params.id;
+    const userId = req.user.id;
+
+    // Check if user has access to this task
+    const accessCheck = await query(`
+      SELECT t.id FROM tasks t
+      JOIN projects p ON t.project_id = p.id
+      LEFT JOIN task_members tm ON t.id = tm.task_id
+      LEFT JOIN project_collaborators pc ON p.id = pc.project_id
+      WHERE t.id = $1 AND (tm.user_id = $2 OR pc.user_id = $2 OR p.created_by = $2)
+      LIMIT 1
+    `, [taskId, userId]);
+
+    if (accessCheck.rows.length === 0) {
+      return res.status(403).json({
+        success: false,
+        message: 'Akses ditolak ke task ini'
+      });
+    }
+
+    const result = await query(`
+      SELECT 
+        ta.id, ta.filename, ta.original_name, ta.file_size, ta.mime_type, ta.uploaded_at,
+        u.username as uploaded_by_username, u.full_name as uploaded_by_name
+      FROM task_attachments ta
+      LEFT JOIN users u ON ta.uploaded_by = u.id
+      WHERE ta.task_id = $1
+      ORDER BY ta.uploaded_at DESC
+    `, [taskId]);
+
+    res.json({
+      success: true,
+      data: result.rows
+    });
+  } catch (error) {
+    console.error('Get task attachments error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Gagal mengambil daftar attachments'
+    });
+  }
+};
+
+// Download attachment
+const downloadAttachment = async (req, res) => {
+  try {
+    const taskId = req.params.id;
+    const attachmentId = req.params.attachmentId;
+    const userId = req.user.id;
+
+    // Check if user has access to this task
+    const accessCheck = await query(`
+      SELECT t.id FROM tasks t
+      JOIN projects p ON t.project_id = p.id
+      LEFT JOIN task_members tm ON t.id = tm.task_id
+      LEFT JOIN project_collaborators pc ON p.id = pc.project_id
+      WHERE t.id = $1 AND (tm.user_id = $2 OR pc.user_id = $2 OR p.created_by = $2)
+      LIMIT 1
+    `, [taskId, userId]);
+
+    if (accessCheck.rows.length === 0) {
+      return res.status(403).json({
+        success: false,
+        message: 'Akses ditolak ke task ini'
+      });
+    }
+
+    const result = await query(`
+      SELECT filename, original_name, file_path, mime_type, file_size
+      FROM task_attachments
+      WHERE id = $1 AND task_id = $2
+    `, [attachmentId, taskId]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'File tidak ditemukan'
+      });
+    }
+
+    const attachment = result.rows[0];
+    const fs = require('fs');
+    const path = require('path');
+
+    // Check if file exists
+    if (!fs.existsSync(attachment.file_path)) {
+      return res.status(404).json({
+        success: false,
+        message: 'File tidak ditemukan di server'
+      });
+    }
+
+    // Set headers for download
+    res.setHeader('Content-Type', attachment.mime_type);
+    res.setHeader('Content-Disposition', `attachment; filename="${attachment.original_name}"`);
+    res.setHeader('Content-Length', attachment.file_size);
+
+    // Stream the file
+    const fileStream = fs.createReadStream(attachment.file_path);
+    fileStream.pipe(res);
+  } catch (error) {
+    console.error('Download attachment error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Gagal download file'
+    });
+  }
+};
+
+// Preview attachment (for images)
+const previewAttachment = async (req, res) => {
+  try {
+    const taskId = req.params.id;
+    const attachmentId = req.params.attachmentId;
+    const userId = req.user.id;
+
+    // Check if user has access to this task
+    const accessCheck = await query(`
+      SELECT t.id FROM tasks t
+      JOIN projects p ON t.project_id = p.id
+      LEFT JOIN task_members tm ON t.id = tm.task_id
+      LEFT JOIN project_collaborators pc ON p.id = pc.project_id
+      WHERE t.id = $1 AND (tm.user_id = $2 OR pc.user_id = $2 OR p.created_by = $2)
+      LIMIT 1
+    `, [taskId, userId]);
+
+    if (accessCheck.rows.length === 0) {
+      return res.status(403).json({
+        success: false,
+        message: 'Akses ditolak ke task ini'
+      });
+    }
+
+    const result = await query(`
+      SELECT filename, original_name, file_path, mime_type, file_size
+      FROM task_attachments
+      WHERE id = $1 AND task_id = $2
+    `, [attachmentId, taskId]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'File tidak ditemukan'
+      });
+    }
+
+    const attachment = result.rows[0];
+    const fs = require('fs');
+
+    // Check if file exists
+    if (!fs.existsSync(attachment.file_path)) {
+      return res.status(404).json({
+        success: false,
+        message: 'File tidak ditemukan di server'
+      });
+    }
+
+    // Set headers for preview (no download)
+    res.setHeader('Content-Type', attachment.mime_type);
+    res.setHeader('Content-Length', attachment.file_size);
+    res.setHeader('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
+
+    // Stream the file
+    const fileStream = fs.createReadStream(attachment.file_path);
+    fileStream.pipe(res);
+  } catch (error) {
+    console.error('Preview attachment error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Gagal preview file'
     });
   }
 };
@@ -731,16 +937,28 @@ const deleteAttachment = async (req, res) => {
       });
     }
 
+    // Get file info before deleting
+    const fileResult = await query(`
+      SELECT file_path FROM task_attachments WHERE id = $1 AND task_id = $2
+    `, [attachmentId, taskId]);
+
+    if (fileResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Attachment tidak ditemukan'
+      });
+    }
+
+    // Delete from database
     const result = await query(
       'DELETE FROM task_attachments WHERE id = $1 AND task_id = $2 RETURNING id',
       [attachmentId, taskId]
     );
 
-    if (result.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Attachment tidak ditemukan'
-      });
+    // Delete physical file
+    const fs = require('fs');
+    if (fs.existsSync(fileResult.rows[0].file_path)) {
+      fs.unlinkSync(fileResult.rows[0].file_path);
     }
 
     res.json({
@@ -1109,6 +1327,9 @@ module.exports = {
   addTaskMember,
   removeTaskMember,
   uploadAttachments,
+  getTaskAttachments,
+  downloadAttachment,
+  previewAttachment,
   deleteAttachment,
   getTaskComments,
   createTaskComment,

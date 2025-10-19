@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Image Preview Test</title>
+</head>
+<body>
+    <h1>Image Preview Test</h1>
+    <div id="test-results"></div>
+    
+    <script>
+        // Test data from our database
+        const taskId = 'ef749334-89ce-45bd-89cb-b6bab64ff262';
+        const attachmentId = '7c4d0d99-62c8-4759-8b3a-5ee2448722fa';
+        const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI3ZmZmYWRlNi02NjM2LTQ3YWUtYWVlMy01MDkzMmRhYWU4NTUiLCJpYXQiOjE3NjA4ODcxNTAsImV4cCI6MTc2MTQ5MTk1MH0.4f5cG7Q3UDez2rXGp-u49Psd3Ity0WeasCwRWzScxpE';
+        
+        const previewUrl = `http://localhost:9561/api/tasks/${taskId}/attachments/${attachmentId}/preview`;
+        const downloadUrl = `http://localhost:9561/api/tasks/${taskId}/attachments/${attachmentId}/download`;
+        
+        console.log('Testing preview URL:', previewUrl);
+        console.log('Testing download URL:', downloadUrl);
+        
+        // Test preview endpoint
+        fetch(previewUrl, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        })
+        .then(response => {
+            console.log('Preview response status:', response.status);
+            console.log('Preview response headers:', response.headers);
+            return response.blob();
+        })
+        .then(blob => {
+            console.log('Preview blob size:', blob.size);
+            console.log('Preview blob type:', blob.type);
+            
+            // Create image element
+            const img = document.createElement('img');
+            img.src = URL.createObjectURL(blob);
+            img.style.maxWidth = '300px';
+            img.style.border = '1px solid #ccc';
+            
+            const results = document.getElementById('test-results');
+            results.innerHTML = '<h2>Preview Test Results:</h2>';
+            results.appendChild(img);
+            
+            // Test download endpoint for comparison
+            return fetch(downloadUrl, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+        })
+        .then(response => {
+            console.log('Download response status:', response.status);
+            return response.blob();
+        })
+        .then(blob => {
+            console.log('Download blob size:', blob.size);
+            console.log('Download blob type:', blob.type);
+        })
+        .catch(error => {
+            console.error('Test error:', error);
+            document.getElementById('test-results').innerHTML = '<h2>Error:</h2><p>' + error.message + '</p>';
+        });
+    </script>
+</body>
+</html>

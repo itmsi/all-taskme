@@ -91,9 +91,9 @@ const schemas = {
     title: Joi.string().min(2).max(200),
     description: Joi.string().max(2000),
     priority: Joi.string().valid('low', 'medium', 'high', 'urgent'),
-    due_date: Joi.date().iso(),
-    estimated_hours: Joi.number().integer().min(0),
-    actual_hours: Joi.number().integer().min(0),
+    due_date: Joi.date().iso().allow('', null),
+    estimated_hours: Joi.number().integer().min(0).allow('', null),
+    actual_hours: Joi.number().integer().min(0).allow('', null),
     status_id: Joi.string().uuid()
   }),
 

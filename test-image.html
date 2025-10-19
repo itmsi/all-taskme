@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Image Preview Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 20px; border: 1px solid #ccc; }
+        img { max-width: 300px; margin: 10px; }
+        .error { color: red; }
+        .success { color: green; }
+    </style>
+</head>
+<body>
+    <h1>Image Preview Test</h1>
+    
+    <div class="test-section">
+        <h2>Test 1: Direct Image Load</h2>
+        <p>Loading image directly with img tag:</p>
+        <img id="testImg" src="" alt="Test Image" onload="showSuccess('testImg')" onerror="showError('testImg')">
+        <div id="testImg-status"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test 2: Fetch API Test</h2>
+        <button onclick="testFetch()">Test Fetch API</button>
+        <div id="fetch-status"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test 3: Console Logs</h2>
+        <p>Check browser console for detailed logs</p>
+    </div>
+    
+    <script>
+        // Test data
+        const taskId = 'ef749334-89ce-45bd-89cb-b6bab64ff262';
+        const attachmentId = '7c4d0d99-62c8-4759-8b3a-5ee2448722fa';
+        const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI3ZmZmYWRlNi02NjM2LTQ3YWUtYWVlMy01MDkzMmRhYWU4NTUiLCJpYXQiOjE3NjA4ODcxNTAsImV4cCI6MTc2MTQ5MTk1MH0.4f5cG7Q3UDez2rXGp-u49Psd3Ity0WeasCwRWzScxpE';
+        
+        const previewUrl = `http://localhost:9561/api/tasks/${taskId}/attachments/${attachmentId}/preview`;
+        
+        console.log('Test URL:', previewUrl);
+        console.log('Token:', token);
+        
+        // Test 1: Direct image load
+        document.getElementById('testImg').src = previewUrl;
+        
+        function showSuccess(elementId) {
+            document.getElementById(elementId + '-status').innerHTML = '<span class="success">✅ Image loaded successfully!</span>';
+            console.log('Image loaded successfully:', elementId);
+        }
+        
+        function showError(elementId) {
+            document.getElementById(elementId + '-status').innerHTML = '<span class="error">❌ Image failed to load</span>';
+            console.error('Image failed to load:', elementId);
+        }
+        
+        // Test 2: Fetch API
+        async function testFetch() {
+            const statusDiv = document.getElementById('fetch-status');
+            statusDiv.innerHTML = 'Testing...';
+            
+            try {
+                console.log('Testing fetch with URL:', previewUrl);
+                
+                const response = await fetch(previewUrl, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include'
+                });
+                
+                console.log('Response status:', response.status);
+                console.log('Response headers:', [...response.headers.entries()]);
+                
+                if (response.ok) {
+                    const blob = await response.blob();
+                    console.log('Blob type:', blob.type);
+                    console.log('Blob size:', blob.size);
+                    
+                    // Create object URL and display image
+                    const imageUrl = URL.createObjectURL(blob);
+                    const img = document.createElement('img');
+                    img.src = imageUrl;
+                    img.style.maxWidth = '300px';
+                    img.style.margin = '10px';
+                    
+                    statusDiv.innerHTML = '<span class="success">✅ Fetch successful!</span>';
+                    statusDiv.appendChild(img);
+                    
+                    // Clean up
+                    img.onload = () => URL.revokeObjectURL(imageUrl);
+                } else {
+                    const errorText = await response.text();
+                    console.error('Fetch failed:', response.status, errorText);
+                    statusDiv.innerHTML = `<span class="error">❌ Fetch failed: ${response.status} - ${errorText}</span>`;
+                }
+            } catch (error) {
+                console.error('Fetch error:', error);
+                statusDiv.innerHTML = `<span class="error">❌ Fetch error: ${error.message}</span>`;
+            }
+        }
+        
+        // Auto-run fetch test
+        setTimeout(testFetch, 1000);
+    </script>
+</body>
+</html>

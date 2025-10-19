@@ -823,6 +823,9 @@ router.delete('/:id/members/:userId', authenticateToken, taskController.removeTa
  *         $ref: '#/components/responses/ForbiddenError'
  */
 router.post('/:id/attachments', authenticateToken, uploadMultiple('attachments', 5), taskController.uploadAttachments);
+router.get('/:id/attachments', authenticateToken, taskController.getTaskAttachments);
+router.get('/:id/attachments/:attachmentId/download', authenticateToken, taskController.downloadAttachment);
+router.get('/:id/attachments/:attachmentId/preview', authenticateToken, taskController.previewAttachment);
 
 /**
  * @swagger
