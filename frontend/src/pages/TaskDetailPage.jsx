@@ -38,6 +38,24 @@ function FileUpload({ taskId, attachments, onUpload, onDelete }) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [viewMode, setViewMode] = useState('list') // 'list' or 'grid'
   const [imageLoadingStates, setImageLoadingStates] = useState({})
+  const [imageUrls, setImageUrls] = useState({})
+
+  const getImageUrl = async (attachmentId) => {
+    if (imageUrls[attachmentId]) {
+      return imageUrls[attachmentId]
+    }
+
+    try {
+      const response = await tasksAPI.previewAttachment(taskId, attachmentId)
+      const blob = response.data
+      const url = URL.createObjectURL(blob)
+      setImageUrls(prev => ({ ...prev, [attachmentId]: url }))
+      return url
+    } catch (error) {
+      console.error('Error loading image:', error)
+      throw error
+    }
+  }
 
   const handleFileSelect = async (e) => {
     const files = Array.from(e.target.files)
@@ -109,12 +127,12 @@ function FileUpload({ taskId, attachments, onUpload, onDelete }) {
 
   const imagesForModal = useMemo(() => {
     const images = imageAttachments.map(img => ({
-      url: `/api/tasks/${taskId}/attachments/${img.id}/preview`,
+      url: imageUrls[img.id] || `/api/tasks/${taskId}/attachments/${img.id}/preview`,
       name: img.original_name
     }))
     console.log('Images for modal:', images)
     return images
-  }, [imageAttachments, taskId])
+  }, [imageAttachments, taskId, imageUrls])
 
   const handleImagePreview = useCallback((attachment) => {
     const index = imageAttachments.findIndex(img => img.id === attachment.id)
@@ -130,9 +148,17 @@ function FileUpload({ taskId, attachments, onUpload, onDelete }) {
     setCurrentImageIndex(index)
   }
 
-  const handleImageLoad = (attachmentId) => {
-    console.log('Image loaded successfully for attachment:', attachmentId)
-    setImageLoadingStates(prev => ({ ...prev, [attachmentId]: 'loaded' }))
+  const handleImageLoad = async (attachmentId) => {
+    try {
+      console.log('Loading image for attachment:', attachmentId)
+      setImageLoadingStates(prev => ({ ...prev, [attachmentId]: 'loading' }))
+      await getImageUrl(attachmentId)
+      console.log('Image loaded successfully for attachment:', attachmentId)
+      setImageLoadingStates(prev => ({ ...prev, [attachmentId]: 'loaded' }))
+    } catch (error) {
+      console.error('Image load error for attachment:', attachmentId, error)
+      setImageLoadingStates(prev => ({ ...prev, [attachmentId]: 'error' }))
+    }
   }
 
   const handleImageError = (attachmentId) => {
@@ -144,6 +170,26 @@ function FileUpload({ taskId, attachments, onUpload, onDelete }) {
     setCurrentImageIndex(index)
     setPreviewModalOpen(true)
   }, [])
+
+  // Load images when attachments change
+  useEffect(() => {
+    imageAttachments.forEach(attachment => {
+      if (!imageUrls[attachment.id] && imageLoadingStates[attachment.id] !== 'loading') {
+        handleImageLoad(attachment.id)
+      }
+    })
+  }, [imageAttachments, imageUrls, imageLoadingStates])
+
+  // Cleanup blob URLs when component unmounts
+  useEffect(() => {
+    return () => {
+      Object.values(imageUrls).forEach(url => {
+        if (url.startsWith('blob:')) {
+          URL.revokeObjectURL(url)
+        }
+      })
+    }
+  }, [imageUrls])
 
   return (
     <div className="space-y-3">
@@ -262,18 +308,17 @@ function FileUpload({ taskId, attachments, onUpload, onDelete }) {
                           </div>
                         )}
                         <img
-                          src={`/api/tasks/${taskId}/attachments/${attachment.id}/preview`}
+                          src={imageUrls[attachment.id] || ''}
                           alt={attachment.original_name}
                           className={`max-w-full h-32 object-cover rounded-lg border border-gray-200 cursor-pointer hover:opacity-80 transition-opacity ${
                             imageLoadingStates[attachment.id] === 'loaded' ? 'opacity-100' : 'opacity-0'
                           }`}
                           onClick={() => handleImagePreview(attachment)}
                           onLoad={() => {
-                            console.log('Image loaded:', `/api/tasks/${taskId}/attachments/${attachment.id}/preview`)
-                            handleImageLoad(attachment.id)
+                            console.log('Image loaded:', attachment.id)
                           }}
                           onError={(e) => {
-                            console.error('Image error:', `/api/tasks/${taskId}/attachments/${attachment.id}/preview`, e)
+                            console.error('Image error:', attachment.id, e)
                             handleImageError(attachment.id)
                           }}
                         />
@@ -295,6 +340,7 @@ function FileUpload({ taskId, attachments, onUpload, onDelete }) {
                 imageAttachments={imageAttachments}
                 taskId={taskId}
                 imageLoadingStates={imageLoadingStates}
+                imageUrls={imageUrls}
                 onImageLoad={handleImageLoad}
                 onImageError={handleImageError}
                 onImagePreview={handleImagePreviewWithIndex}
@@ -313,7 +359,7 @@ function FileUpload({ taskId, attachments, onUpload, onDelete }) {
                           </div>
                         )}
                         <img
-                          src={`/api/tasks/${taskId}/attachments/${attachment.id}/preview`}
+                          src={imageUrls[attachment.id] || ''}
                           alt={attachment.original_name}
                           className={`w-full h-32 object-cover cursor-pointer hover:opacity-80 transition-opacity ${
                             imageLoadingStates[attachment.id] === 'loaded' ? 'opacity-100' : 'opacity-0'
@@ -407,6 +453,7 @@ function FileUpload({ taskId, attachments, onUpload, onDelete }) {
                 imageAttachments={imageAttachments}
                 taskId={taskId}
                 imageLoadingStates={imageLoadingStates}
+                imageUrls={imageUrls}
                 onImageLoad={handleImageLoad}
                 onImageError={handleImageError}
                 onImagePreview={handleImagePreviewWithIndex}
@@ -432,7 +479,8 @@ function FileUpload({ taskId, attachments, onUpload, onDelete }) {
 const ImageGallery = memo(function ImageGallery({ 
   imageAttachments, 
   taskId, 
-  imageLoadingStates, 
+  imageLoadingStates,
+  imageUrls,
   onImageLoad, 
   onImageError, 
   onImagePreview 
@@ -463,7 +511,7 @@ const ImageGallery = memo(function ImageGallery({
               </div>
             )}
             <img
-              src={`/api/tasks/${taskId}/attachments/${attachment.id}/preview`}
+              src={imageUrls[attachment.id] || ''}
               alt={attachment.original_name}
               className={`w-full h-full object-cover hover:scale-105 transition-transform duration-200 ${
                 imageLoadingStates[attachment.id] === 'loaded' ? 'opacity-100' : 'opacity-0'

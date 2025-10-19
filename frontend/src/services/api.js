@@ -118,6 +118,9 @@ export const tasksAPI = {
   downloadAttachment: (id, attachmentId) => api.get(`/tasks/${id}/attachments/${attachmentId}/download`, {
     responseType: 'blob'
   }),
+  previewAttachment: (id, attachmentId) => api.get(`/tasks/${id}/attachments/${attachmentId}/preview`, {
+    responseType: 'blob'
+  }),
   deleteAttachment: (id, attachmentId) => api.delete(`/tasks/${id}/attachments/${attachmentId}`),
   getTaskComments: (id) => api.get(`/tasks/${id}/comments`),
   createTaskComment: (id, commentData) => api.post(`/tasks/${id}/comments`, commentData),
