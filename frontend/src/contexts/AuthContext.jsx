@@ -1,12 +1,29 @@
-import { createContext, useContext, useReducer, useEffect } from 'react'
+import { createContext, useContext, useReducer, useEffect, useRef } from 'react'
 import { api } from '../services/api'
 
 const AuthContext = createContext()
 
+// Check if we have cached user data
+const getCachedUserData = () => {
+  try {
+    const cached = localStorage.getItem('userData')
+    if (cached) {
+      const { user, timestamp } = JSON.parse(cached)
+      // Cache valid for 1 hour
+      if (Date.now() - timestamp < 60 * 60 * 1000) {
+        return user
+      }
+    }
+  } catch (error) {
+    console.error('Error parsing cached user data:', error)
+  }
+  return null
+}
+
 const initialState = {
-  user: null,
+  user: getCachedUserData(),
   token: localStorage.getItem('token'),
-  loading: true,
+  loading: !!localStorage.getItem('token') && !getCachedUserData(), // Only loading if we have token but no cached user
   error: null
 }
 
@@ -19,6 +36,16 @@ function authReducer(state, action) {
         error: null
       }
     case 'AUTH_SUCCESS':
+      // Cache user data
+      try {
+        localStorage.setItem('userData', JSON.stringify({
+          user: action.payload.user,
+          timestamp: Date.now()
+        }))
+      } catch (error) {
+        console.error('Error caching user data:', error)
+      }
+      
       return {
         ...state,
         user: action.payload.user,
@@ -27,6 +54,13 @@ function authReducer(state, action) {
         error: null
       }
     case 'AUTH_ERROR':
+      // Clear cached user data on error
+      try {
+        localStorage.removeItem('userData')
+      } catch (error) {
+        console.error('Error clearing cached user data:', error)
+      }
+      
       return {
         ...state,
         user: null,
@@ -35,6 +69,13 @@ function authReducer(state, action) {
         error: action.payload
       }
     case 'LOGOUT':
+      // Clear cached user data on logout
+      try {
+        localStorage.removeItem('userData')
+      } catch (error) {
+        console.error('Error clearing cached user data:', error)
+      }
+      
       return {
         ...state,
         user: null,
@@ -54,6 +95,7 @@ function authReducer(state, action) {
 
 export function AuthProvider({ children }) {
   const [state, dispatch] = useReducer(authReducer, initialState)
+  const hasCheckedAuth = useRef(false) // Prevent duplicate auth checks
 
   // Set token in axios headers
   useEffect(() => {
@@ -66,8 +108,12 @@ export function AuthProvider({ children }) {
     }
   }, [state.token])
 
-  // Check if user is logged in on app start
+  // Check if user is logged in on app start - only run once
   useEffect(() => {
+    // Prevent duplicate auth checks from StrictMode
+    if (hasCheckedAuth.current) return
+    hasCheckedAuth.current = true
+
     const checkAuth = async () => {
       if (state.token) {
         try {
@@ -88,8 +134,13 @@ export function AuthProvider({ children }) {
       }
     }
 
-    checkAuth()
-  }, [])
+    // Only check auth if we haven't loaded yet and have a token
+    if (state.loading && state.token) {
+      checkAuth()
+    } else if (!state.token) {
+      dispatch({ type: 'AUTH_ERROR', payload: null })
+    }
+  }, []) // Empty dependency array - only run once on mount
 
   const login = async (credentials) => {
     try {

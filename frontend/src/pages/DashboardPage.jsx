@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Users, FolderOpen, CheckSquare, TrendingUp } from 'lucide-react'
-import { teamsAPI, projectsAPI, tasksAPI } from '../services/api'
+import { teamsAPI, projectsAPI, analyticsAPI } from '../services/api'
 import LoadingSpinner from '../components/LoadingSpinner'
 
 export default function DashboardPage() {
@@ -37,32 +37,19 @@ export default function DashboardPage() {
       try {
         setLoading(true)
         
-        // Fetch teams, projects, and calculate stats
-        const [teamsResponse, projectsResponse] = await Promise.all([
+        // Fetch teams, projects, and dashboard analytics in parallel
+        const [teamsResponse, projectsResponse, analyticsResponse] = await Promise.all([
           teamsAPI.getUserTeams(),
-          projectsAPI.getUserProjects()
+          projectsAPI.getUserProjects(),
+          analyticsAPI.getDashboardAnalytics()
         ])
 
         const teams = teamsResponse.data.teams || []
         const projects = projectsResponse.data.data || []
+        const analytics = analyticsResponse.data.data || {}
         
-        // Calculate total tasks from all projects
-        let totalTasks = 0
-        let totalProgress = 0
-        
-        for (const project of projects) {
-          try {
-            const tasksResponse = await tasksAPI.getProjectTasks(project.id)
-            const tasks = tasksResponse.data.data || []
-            totalTasks += tasks.length
-            
-            // Calculate project progress
-            totalProgress += project.progress || 0
-          } catch (error) {
-            console.error(`Error fetching tasks for project ${project.id}:`, error)
-          }
-        }
-
+        // Calculate average progress from projects
+        const totalProgress = projects.reduce((sum, project) => sum + (project.progress || 0), 0)
         const avgProgress = projects.length > 0 ? Math.round(totalProgress / projects.length) : 0
 
         setStats([
@@ -80,7 +67,7 @@ export default function DashboardPage() {
           },
           {
             name: 'Total Tugas',
-            value: totalTasks.toString(),
+            value: analytics.task_overview?.total_tasks_assigned?.toString() || '0',
             icon: CheckSquare,
             color: 'bg-yellow-500'
           },
