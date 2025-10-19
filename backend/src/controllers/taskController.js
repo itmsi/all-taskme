@@ -627,7 +627,7 @@ const addTaskMember = async (req, res) => {
 const removeTaskMember = async (req, res) => {
   try {
     const taskId = req.params.id;
-    const memberId = req.params.memberId;
+    const memberId = req.params.userId;
     const userId = req.user.id;
 
     // Check if user has permission to remove members from this task

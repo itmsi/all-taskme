@@ -740,7 +740,7 @@ export default function TaskDetailPage() {
           estimated_hours: taskData.estimated_hours || ''
         })
         setAssignedMembers(taskData.members || [])
-        setAvailableUsers(usersResponse.data.data || [])
+        setAvailableUsers(usersResponse.data.users || [])
         setMessages(commentsResponse.data.data.comments || [])
         setAttachments(attachmentsResponse.data.data || [])
         
@@ -825,6 +825,11 @@ export default function TaskDetailPage() {
       }
     } catch (error) {
       console.error('Error updating task members:', error)
+      if (error.response?.data?.message) {
+        alert(`Error: ${error.response.data.message}`)
+      } else {
+        alert('Terjadi kesalahan saat mengupdate member. Silakan coba lagi.')
+      }
     }
   }
 
