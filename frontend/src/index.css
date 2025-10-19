@@ -9,51 +9,186 @@
   overflow: hidden;
 }
 
-.rich-text-editor .w-md-editor {
-  background-color: white;
-}
-
-.rich-text-editor .w-md-editor-toolbar {
+.rich-text-editor .ql-toolbar {
+  border-top: 1px solid #e5e7eb;
+  border-left: 1px solid #e5e7eb;
+  border-right: 1px solid #e5e7eb;
+  border-top-left-radius: 0.5rem;
+  border-top-right-radius: 0.5rem;
   background-color: #f9fafb;
-  border-bottom: 1px solid #e5e7eb;
 }
 
-.rich-text-editor .w-md-editor-text {
+.rich-text-editor .ql-container {
+  border-bottom: 1px solid #e5e7eb;
+  border-left: 1px solid #e5e7eb;
+  border-right: 1px solid #e5e7eb;
+  border-bottom-left-radius: 0.5rem;
+  border-bottom-right-radius: 0.5rem;
   background-color: white;
 }
 
-.rich-text-editor .w-md-editor-text-input {
+.rich-text-editor .ql-editor {
+  min-height: 150px;
   font-family: inherit;
   font-size: 14px;
   line-height: 1.5;
+  color: #374151;
 }
 
-.rich-text-editor .w-md-editor-text-input::placeholder {
+.rich-text-editor .ql-editor.ql-blank::before {
   color: #9ca3af;
+  font-style: normal;
+}
+
+.rich-text-editor .ql-editor:focus {
+  outline: none;
+}
+
+/* Toolbar button styles */
+.rich-text-editor .ql-toolbar .ql-stroke {
+  stroke: #6b7280;
+}
+
+.rich-text-editor .ql-toolbar .ql-fill {
+  fill: #6b7280;
+}
+
+.rich-text-editor .ql-toolbar button:hover .ql-stroke {
+  stroke: #374151;
+}
+
+.rich-text-editor .ql-toolbar button:hover .ql-fill {
+  fill: #374151;
+}
+
+.rich-text-editor .ql-toolbar button.ql-active .ql-stroke {
+  stroke: #2563eb;
+}
+
+.rich-text-editor .ql-toolbar button.ql-active .ql-fill {
+  fill: #2563eb;
+}
+
+/* Read-only mode styles */
+.rich-text-editor-readonly {
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  background-color: #f9fafb;
+}
+
+.rich-text-editor-readonly .prose h1,
+.rich-text-editor-readonly .prose h2,
+.rich-text-editor-readonly .prose h3 {
+  font-weight: 600;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+  color: #111827;
+}
+
+.rich-text-editor-readonly .prose h1 {
+  font-size: 1.5rem;
+}
+
+.rich-text-editor-readonly .prose h2 {
+  font-size: 1.25rem;
+}
+
+.rich-text-editor-readonly .prose h3 {
+  font-size: 1.125rem;
+}
+
+.rich-text-editor-readonly .prose p {
+  margin-bottom: 0.75rem;
+  color: #374151;
+  line-height: 1.6;
+}
+
+.rich-text-editor-readonly .prose strong {
+  font-weight: 600;
+  color: #111827;
+}
+
+.rich-text-editor-readonly .prose em {
+  font-style: italic;
+}
+
+.rich-text-editor-readonly .prose ul,
+.rich-text-editor-readonly .prose ol {
+  margin-bottom: 0.75rem;
+  padding-left: 1.5rem;
+}
+
+.rich-text-editor-readonly .prose li {
+  margin-bottom: 0.25rem;
+  color: #374151;
+}
+
+.rich-text-editor-readonly .prose a {
+  color: #2563eb;
+  text-decoration: underline;
+}
+
+.rich-text-editor-readonly .prose a:hover {
+  color: #1d4ed8;
 }
 
 /* Dark mode support */
 @media (prefers-color-scheme: dark) {
-  .rich-text-editor .w-md-editor {
-    background-color: #1f2937;
-    border-color: #4b5563;
-  }
-  
-  .rich-text-editor .w-md-editor-toolbar {
+  .rich-text-editor .ql-toolbar {
     background-color: #374151;
     border-color: #4b5563;
   }
   
-  .rich-text-editor .w-md-editor-text {
+  .rich-text-editor .ql-container {
     background-color: #1f2937;
+    border-color: #4b5563;
   }
   
-  .rich-text-editor .w-md-editor-text-input {
+  .rich-text-editor .ql-editor {
     color: #f9fafb;
   }
   
-  .rich-text-editor .w-md-editor-text-input::placeholder {
+  .rich-text-editor .ql-editor.ql-blank::before {
     color: #6b7280;
+  }
+  
+  .rich-text-editor .ql-toolbar .ql-stroke {
+    stroke: #9ca3af;
+  }
+  
+  .rich-text-editor .ql-toolbar .ql-fill {
+    fill: #9ca3af;
+  }
+  
+  .rich-text-editor .ql-toolbar button:hover .ql-stroke {
+    stroke: #f9fafb;
+  }
+  
+  .rich-text-editor .ql-toolbar button:hover .ql-fill {
+    fill: #f9fafb;
+  }
+  
+  .rich-text-editor-readonly {
+    background-color: #374151;
+    border-color: #4b5563;
+  }
+  
+  .rich-text-editor-readonly .prose h1,
+  .rich-text-editor-readonly .prose h2,
+  .rich-text-editor-readonly .prose h3 {
+    color: #f9fafb;
+  }
+  
+  .rich-text-editor-readonly .prose p {
+    color: #d1d5db;
+  }
+  
+  .rich-text-editor-readonly .prose strong {
+    color: #f9fafb;
+  }
+  
+  .rich-text-editor-readonly .prose li {
+    color: #d1d5db;
   }
 }
 

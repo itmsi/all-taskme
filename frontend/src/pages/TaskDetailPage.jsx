@@ -947,9 +947,11 @@ export default function TaskDetailPage() {
                 />
               ) : (
                 <div className="prose max-w-none">
-                  <div 
-                    className="text-gray-700"
-                    dangerouslySetInnerHTML={{ __html: task.description || '<p>No description provided.</p>' }}
+                  <RichTextEditor
+                    value={task.description || ''}
+                    readOnly={true}
+                    height="auto"
+                    placeholder="No description provided."
                   />
                 </div>
               )}

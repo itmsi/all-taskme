@@ -1,5 +1,6 @@
-import React, { useState, useRef } from 'react'
-import MDEditor from '@uiw/react-md-editor'
+import React, { useState, useRef, useEffect } from 'react'
+import ReactQuill from 'react-quill'
+import 'react-quill/dist/quill.snow.css'
 
 const RichTextEditor = ({ 
   value = '', 
@@ -8,59 +9,66 @@ const RichTextEditor = ({
   readOnly = false,
   height = '200px'
 }) => {
-  const [markdown, setMarkdown] = useState(value)
-
-  const handleChange = (val) => {
-    const newValue = val || ''
-    setMarkdown(newValue)
-    if (onChange) {
-      onChange(newValue)
-    }
-  }
+  const quillRef = useRef(null)
+  const [editorValue, setEditorValue] = useState(value)
 
   // Update internal state when external value changes
-  React.useEffect(() => {
-    if (value !== markdown) {
-      setMarkdown(value || '')
+  useEffect(() => {
+    if (value !== editorValue) {
+      setEditorValue(value || '')
     }
   }, [value])
 
+  const modules = {
+    toolbar: [
+      [{ 'header': [1, 2, 3, false] }],
+      ['bold', 'italic', 'underline'],
+      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+      ['link'],
+      ['clean']
+    ]
+  }
+
+  const formats = [
+    'header',
+    'bold', 'italic', 'underline',
+    'list', 'bullet',
+    'link'
+  ]
+
+  const handleChange = (content) => {
+    setEditorValue(content)
+    if (onChange) {
+      onChange(content)
+    }
+  }
+
   if (readOnly) {
     return (
-      <div className="rich-text-editor">
-        <div className="wmde-markdown-var" data-color-mode="light">
-          <MDEditor.Markdown 
-            source={markdown} 
-            style={{ 
-              height: height,
-              backgroundColor: 'transparent',
-              padding: '16px'
-            }}
-          />
-        </div>
+      <div className="rich-text-editor-readonly">
+        <div 
+          className="prose max-w-none p-4 bg-gray-50 rounded-lg border"
+          dangerouslySetInnerHTML={{ __html: editorValue || '<p class="text-gray-500 italic">No description provided.</p>' }}
+        />
       </div>
     )
   }
 
   return (
     <div className="rich-text-editor">
-      <MDEditor
-        value={markdown}
+      <ReactQuill
+        ref={quillRef}
+        theme="snow"
+        value={editorValue}
         onChange={handleChange}
-        height={height}
-        data-color-mode="light"
+        modules={modules}
+        formats={formats}
         placeholder={placeholder}
-        preview="edit"
-        hideToolbar={false}
-        textareaProps={{
-          placeholder: placeholder,
-          style: {
-            fontSize: 14,
-            fontFamily: 'inherit',
-          },
+        readOnly={readOnly}
+        style={{ 
+          height: height,
+          marginBottom: '42px'
         }}
-        toolbarHeight={40}
-        toolbarBottom={false}
       />
     </div>
   )
