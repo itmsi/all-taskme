@@ -152,22 +152,25 @@ const getTaskById = async (req, res) => {
   try {
     const taskId = req.params.id;
     const userId = req.user.id;
+    const userRole = req.user.role;
 
-    // Check if user has access to this task
-    const accessCheck = await query(`
-      SELECT t.id FROM tasks t
-      JOIN projects p ON t.project_id = p.id
-      LEFT JOIN task_members tm ON t.id = tm.task_id
-      LEFT JOIN project_collaborators pc ON p.id = pc.project_id
-      WHERE t.id = $1 AND (tm.user_id = $2 OR pc.user_id = $2 OR p.created_by = $2)
-      LIMIT 1
-    `, [taskId, userId]);
+    // Check if user has access to this task (admin can access all tasks)
+    if (userRole !== 'admin') {
+      const accessCheck = await query(`
+        SELECT t.id FROM tasks t
+        JOIN projects p ON t.project_id = p.id
+        LEFT JOIN task_members tm ON t.id = tm.task_id
+        LEFT JOIN project_collaborators pc ON p.id = pc.project_id
+        WHERE t.id = $1 AND (tm.user_id = $2 OR pc.user_id = $2 OR p.created_by = $2)
+        LIMIT 1
+      `, [taskId, userId]);
 
-    if (accessCheck.rows.length === 0) {
-      return res.status(403).json({
-        success: false,
-        message: 'Akses ditolak ke task ini'
-      });
+      if (accessCheck.rows.length === 0) {
+        return res.status(403).json({
+          success: false,
+          message: 'Akses ditolak ke task ini'
+        });
+      }
     }
 
     const result = await query(`
@@ -815,6 +818,73 @@ const getTaskComments = async (req, res) => {
   }
 };
 
+// Create task comment
+const createTaskComment = async (req, res) => {
+  try {
+    const taskId = req.params.id;
+    const userId = req.user.id;
+    const { message } = req.body;
+
+    if (!message || message.trim().length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Pesan tidak boleh kosong'
+      });
+    }
+
+    // Check if user has access to this task
+    const accessCheck = await query(`
+      SELECT t.id FROM tasks t
+      JOIN projects p ON t.project_id = p.id
+      LEFT JOIN task_members tm ON t.id = tm.task_id
+      LEFT JOIN project_collaborators pc ON p.id = pc.project_id
+      WHERE t.id = $1 AND (tm.user_id = $2 OR pc.user_id = $2 OR p.created_by = $2)
+      LIMIT 1
+    `, [taskId, userId]);
+
+    if (accessCheck.rows.length === 0) {
+      return res.status(403).json({
+        success: false,
+        message: 'Akses ditolak ke task ini'
+      });
+    }
+
+    const result = await query(`
+      INSERT INTO task_comments (task_id, user_id, message, created_at)
+      VALUES ($1, $2, $3, NOW())
+      RETURNING id, message, created_at
+    `, [taskId, userId, message.trim()]);
+
+    // Get user info for the response
+    const userResult = await query(`
+      SELECT id, username, full_name, avatar_url
+      FROM users
+      WHERE id = $1
+    `, [userId]);
+
+    const comment = {
+      id: result.rows[0].id,
+      message: result.rows[0].message,
+      created_at: result.rows[0].created_at,
+      user_id: userId,
+      username: userResult.rows[0].username,
+      full_name: userResult.rows[0].full_name,
+      avatar_url: userResult.rows[0].avatar_url
+    };
+
+    res.status(201).json({
+      success: true,
+      data: comment
+    });
+  } catch (error) {
+    console.error('Create task comment error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Gagal membuat komentar'
+    });
+  }
+};
+
 // Get task statuses for a project
 const getTaskStatuses = async (req, res) => {
   try {
@@ -1041,6 +1111,7 @@ module.exports = {
   uploadAttachments,
   deleteAttachment,
   getTaskComments,
+  createTaskComment,
   getTaskStatuses,
   createTaskStatus,
   updateTaskStatus,

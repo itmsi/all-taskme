@@ -122,20 +122,23 @@ const getProjectById = async (req, res) => {
   try {
     const projectId = req.params.id;
     const userId = req.user.id;
+    const userRole = req.user.role;
 
-    // Check if user has access to this project
-    const accessCheck = await query(`
-      SELECT p.id FROM projects p
-      LEFT JOIN project_collaborators pc ON p.id = pc.project_id
-      WHERE p.id = $1 AND (p.created_by = $2 OR pc.user_id = $2)
-      LIMIT 1
-    `, [projectId, userId]);
+    // Check if user has access to this project (admin can access all projects)
+    if (userRole !== 'admin') {
+      const accessCheck = await query(`
+        SELECT p.id FROM projects p
+        LEFT JOIN project_collaborators pc ON p.id = pc.project_id
+        WHERE p.id = $1 AND (p.created_by = $2 OR pc.user_id = $2)
+        LIMIT 1
+      `, [projectId, userId]);
 
-    if (accessCheck.rows.length === 0) {
-      return res.status(403).json({
-        success: false,
-        message: 'Akses ditolak ke project ini'
-      });
+      if (accessCheck.rows.length === 0) {
+        return res.status(403).json({
+          success: false,
+          message: 'Akses ditolak ke project ini'
+        });
+      }
     }
 
     const result = await query(`
@@ -144,14 +147,15 @@ const getProjectById = async (req, res) => {
         p.created_at, p.updated_at,
         t.id as team_id, t.name as team_name, t.description as team_description,
         u.id as created_by_id, u.username as created_by_username, u.full_name as created_by_name,
-        CASE WHEN p.created_by = $2 THEN 'owner' 
+        CASE WHEN $3 = 'admin' THEN 'admin'
+             WHEN p.created_by = $2 THEN 'owner' 
              ELSE pc.role END as user_role
       FROM projects p
       LEFT JOIN teams t ON p.team_id = t.id
       LEFT JOIN users u ON p.created_by = u.id
       LEFT JOIN project_collaborators pc ON p.id = pc.project_id AND pc.user_id = $2
       WHERE p.id = $1
-    `, [projectId, userId]);
+    `, [projectId, userId, userRole]);
 
     if (result.rows.length === 0) {
       return res.status(404).json({

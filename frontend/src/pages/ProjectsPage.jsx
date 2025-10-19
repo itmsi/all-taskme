@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Plus, FolderOpen, Calendar, Users, Edit, Trash2 } from 'lucide-react'
 import Button from '../components/Button'
 import LoadingSpinner from '../components/LoadingSpinner'
@@ -6,6 +7,7 @@ import ProjectModal from '../components/ProjectModal'
 import { projectsAPI } from '../services/api'
 
 export default function ProjectsPage() {
+  const navigate = useNavigate()
   const [projects, setProjects] = useState([])
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -84,7 +86,7 @@ export default function ProjectsPage() {
             <div 
               key={project.id} 
               className="card hover:shadow-md transition-shadow cursor-pointer"
-              onClick={() => window.location.href = `/projects/${project.id}`}
+              onClick={() => navigate(`/projects/${project.id}`)}
             >
               <div className="card-body">
                 <div className="flex items-start justify-between mb-4">

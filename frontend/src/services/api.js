@@ -113,6 +113,7 @@ export const tasksAPI = {
   }),
   deleteAttachment: (id, attachmentId) => api.delete(`/tasks/${id}/attachments/${attachmentId}`),
   getTaskComments: (id) => api.get(`/tasks/${id}/comments`),
+  createTaskComment: (id, commentData) => api.post(`/tasks/${id}/comments`, commentData),
   getTaskStatuses: (projectId) => api.get(`/tasks/statuses/project/${projectId}`),
   createTaskStatus: (statusData) => api.post('/tasks/statuses', statusData),
   updateTaskStatus: (id, statusData) => api.put(`/tasks/statuses/${id}`, statusData),

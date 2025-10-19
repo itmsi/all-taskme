@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Plus, CheckSquare, Filter, Search, Edit, Trash2 } from 'lucide-react'
 import Button from '../components/Button'
 import Input from '../components/Input'
@@ -11,6 +12,7 @@ import { useApiCache } from '../hooks/useApiCache'
 import { projectsAPI, tasksAPI } from '../services/api'
 
 export default function TasksPage() {
+  const navigate = useNavigate()
   const [tasks, setTasks] = useState([])
   const [viewMode, setViewMode] = useState('kanban') // kanban or list
   const [searchTerm, setSearchTerm] = useState('')
@@ -92,8 +94,7 @@ export default function TasksPage() {
   }
 
   const handleEditTask = (task) => {
-    setSelectedTask(task)
-    setIsModalOpen(true)
+    navigate(`/tasks/${task.id}`)
   }
 
   const handleModalSuccess = () => {
@@ -267,7 +268,11 @@ export default function TasksPage() {
               <div className="card-body">
                 <div className="space-y-4">
                   {filteredTasks.map((task) => (
-                    <div key={task.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                    <div 
+                      key={task.id} 
+                      className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:shadow-md transition-shadow cursor-pointer"
+                      onClick={() => navigate(`/tasks/${task.id}`)}
+                    >
                       <div className="flex-1">
                         <h4 className="font-medium text-gray-900">{task.title}</h4>
                         <p className="text-sm text-gray-500">{task.project_name}</p>
@@ -289,6 +294,15 @@ export default function TasksPage() {
                             {new Date(task.due_date).toLocaleDateString('id-ID')}
                           </span>
                         )}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            navigate(`/tasks/${task.id}`)
+                          }}
+                          className="p-1 text-gray-400 hover:text-blue-600"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </button>
                       </div>
                     </div>
                   ))}

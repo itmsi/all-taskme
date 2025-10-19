@@ -951,5 +951,6 @@ router.delete('/:id/attachments/:attachmentId', authenticateToken, taskControlle
  *         $ref: '#/components/responses/ForbiddenError'
  */
 router.get('/:id/comments', authenticateToken, taskController.getTaskComments);
+router.post('/:id/comments', authenticateToken, taskController.createTaskComment);
 
 module.exports = router;

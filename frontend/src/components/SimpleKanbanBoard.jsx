@@ -1,8 +1,10 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Edit, GripVertical } from 'lucide-react'
 
 // Task Item Component
 function TaskItem({ task, onEdit }) {
+  const navigate = useNavigate()
   const [isDragging, setIsDragging] = useState(false)
 
   const handleDragStart = (e) => {
@@ -23,6 +25,7 @@ function TaskItem({ task, onEdit }) {
       draggable
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
+      onClick={() => navigate(`/tasks/${task.id}`)}
       className={`bg-white rounded-lg p-3 shadow-sm cursor-pointer hover:shadow-md transition-shadow border border-gray-100 ${
         isDragging ? 'opacity-50' : ''
       }`}
@@ -36,7 +39,7 @@ function TaskItem({ task, onEdit }) {
           <button
             onClick={(e) => {
               e.stopPropagation()
-              onEdit(task)
+              navigate(`/tasks/${task.id}`)
             }}
             className="p-1 text-gray-400 hover:text-blue-600"
           >
