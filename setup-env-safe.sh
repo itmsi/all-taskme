@@ -1,7 +1,7 @@
 #!/bin/bash
 
-echo "🔧 Setting up Environment Variables for TaskMe"
-echo "=============================================="
+echo "🔧 Setting up Environment Variables for TaskMe (Safe Version)"
+echo "============================================================="
 
 # Colors for output
 RED='\033[0;31m'
@@ -16,34 +16,21 @@ echo -e "${BLUE}📋 Creating environment file...${NC}"
 DB_PASSWORD=$(openssl rand -base64 32 | tr -d "=+/" | cut -c1-25)
 JWT_SECRET=$(openssl rand -base64 64 | tr -d "=+/" | cut -c1-50)
 
-# Create .env.server file
-sudo tee .env.server > /dev/null << EOF
-# Environment variables for server production deployment
-# Generated on $(date)
-
-# Database Configuration
-DB_PASSWORD=${DB_PASSWORD}
-
-# JWT Secret for authentication
-JWT_SECRET=${JWT_SECRET}
-
-# API URL (should match your subdomain)
-API_URL=https://api-taskme.motorsights.com/api
-
-# Frontend URL (should match your subdomain)
-FRONTEND_URL=https://taskme.motorsights.com
-
-# Optional: Email configuration (if you want to add email notifications)
-# SMTP_HOST=smtp.gmail.com
-# SMTP_PORT=587
-# SMTP_USER=your-email@gmail.com
-# SMTP_PASS=your-app-password
-# FROM_EMAIL=noreply@motorsights.com
-
-# Optional: File upload settings
-# MAX_FILE_SIZE=10485760
-# UPLOAD_PATH=/app/uploads
-EOF
+# Create .env.server file using echo (more reliable)
+echo "# Environment variables for server production deployment" > .env.server
+echo "# Generated on $(date)" >> .env.server
+echo "" >> .env.server
+echo "# Database Configuration" >> .env.server
+echo "DB_PASSWORD=${DB_PASSWORD}" >> .env.server
+echo "" >> .env.server
+echo "# JWT Secret for authentication" >> .env.server
+echo "JWT_SECRET=${JWT_SECRET}" >> .env.server
+echo "" >> .env.server
+echo "# API URL (should match your subdomain)" >> .env.server
+echo "API_URL=https://api-taskme.motorsights.com/api" >> .env.server
+echo "" >> .env.server
+echo "# Frontend URL (should match your subdomain)" >> .env.server
+echo "FRONTEND_URL=https://taskme.motorsights.com" >> .env.server
 
 echo -e "${GREEN}✅ Environment file created: .env.server${NC}"
 echo ""
@@ -53,6 +40,18 @@ echo -e "  - JWT_SECRET: ${JWT_SECRET}"
 echo ""
 echo -e "${YELLOW}⚠️  Keep these values secure!${NC}"
 echo ""
+
+# Verify file was created
+if [ -f ".env.server" ]; then
+    echo -e "${GREEN}✅ File .env.server created successfully${NC}"
+    echo -e "${BLUE}📄 File contents:${NC}"
+    cat .env.server
+    echo ""
+else
+    echo -e "${RED}❌ Failed to create .env.server file${NC}"
+    exit 1
+fi
+
 echo -e "${BLUE}🔄 Restarting containers with environment variables...${NC}"
 
 # Stop containers
