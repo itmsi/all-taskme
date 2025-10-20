@@ -37,9 +37,9 @@ server {
     listen 443 ssl http2;
     server_name taskme.motorsights.com;
 
-    # SSL Configuration
-    ssl_certificate /etc/ssl/certs/taskme.motorsights.com.crt;
-    ssl_certificate_key /etc/ssl/private/taskme.motorsights.com.key;
+    # SSL Configuration (Let's Encrypt)
+    ssl_certificate /etc/letsencrypt/live/taskme.motorsights.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/taskme.motorsights.com/privkey.pem;
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_ciphers ECDHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-SHA256:ECDHE-RSA-AES256-SHA384;
     ssl_prefer_server_ciphers off;
@@ -75,9 +75,9 @@ server {
     listen 443 ssl http2;
     server_name api-taskme.motorsights.com;
 
-    # SSL Configuration
-    ssl_certificate /etc/ssl/certs/api-taskme.motorsights.com.crt;
-    ssl_certificate_key /etc/ssl/private/api-taskme.motorsights.com.key;
+    # SSL Configuration (Let's Encrypt)
+    ssl_certificate /etc/letsencrypt/live/api-taskme.motorsights.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/api-taskme.motorsights.com/privkey.pem;
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_ciphers ECDHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-SHA256:ECDHE-RSA-AES256-SHA384;
     ssl_prefer_server_ciphers off;
@@ -92,9 +92,7 @@ server {
     add_header Content-Security-Policy "default-src 'self'" always;
     add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
 
-    # Rate limiting
-    limit_req_zone $binary_remote_addr zone=api:10m rate=10r/s;
-    limit_req_zone $binary_remote_addr zone=login:10m rate=5r/m;
+    # Rate limiting (zones defined in main nginx.conf)
 
     # API routes
     location /api/ {
