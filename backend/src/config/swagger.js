@@ -12,12 +12,12 @@ const options = {
         email: 'support@taskme.com'
       }
     },
+    // Use relative base URL so it automatically follows the current host/proxy
+    // Works both in development and on any production domain/subdomain
     servers: [
       {
-        url: process.env.NODE_ENV === 'production' 
-          ? 'https://api.taskme.com' 
-          : `http://localhost:${process.env.PORT || 9561}`,
-        description: process.env.NODE_ENV === 'production' ? 'Production server' : 'Development server'
+        url: process.env.API_BASE_PATH || '/',
+        description: 'Auto-detected server (relative base URL)'
       }
     ],
     components: {
