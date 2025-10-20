@@ -102,8 +102,8 @@ export default function TasksPage() {
       alert('Silakan pilih project terlebih dahulu')
       return
     }
-    setSelectedTask(null)
-    setIsModalOpen(true)
+    // Navigate to add task page
+    navigate('/tasks/add')
   }
 
   const handleEditTask = (task) => {
@@ -433,7 +433,12 @@ export default function TasksPage() {
                         <div className="flex-1">
                           <h4 className="font-medium text-gray-900">{task.title}</h4>
                           <p className="text-sm text-gray-500">{task.project_name}</p>
-                          <p className="text-sm text-gray-400 mt-1">{task.description}</p>
+                          {task.description && (
+                            <div 
+                              className="text-sm text-gray-400 mt-1 task-description-prose"
+                              dangerouslySetInnerHTML={{ __html: task.description }}
+                            />
+                          )}
                         </div>
                         <div className="flex items-center space-x-4">
                           <span className={`px-2 py-1 rounded-full text-xs ${

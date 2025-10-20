@@ -85,6 +85,7 @@ const schemas = {
     due_date: Joi.date().iso(),
     estimated_hours: Joi.number().integer().min(0),
     status_id: Joi.string().uuid(),
+    assigned_to: Joi.array().items(Joi.string().uuid()),
     location_name: Joi.string().max(255).allow('', null),
     location_latitude: Joi.number().allow('', null),
     location_longitude: Joi.number().allow('', null),

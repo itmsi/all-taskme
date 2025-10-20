@@ -11,11 +11,13 @@ import {
   Clock,
   AlertCircle,
   CheckCircle2,
-  Circle
+  Circle,
+  Settings
 } from 'lucide-react'
 import Button from '../components/Button'
 import LoadingSpinner from '../components/LoadingSpinner'
 import TaskModal from '../components/TaskModal'
+import TaskStatusManager from '../components/TaskStatusManager'
 import { projectsAPI, tasksAPI } from '../services/api'
 
 export default function ProjectDetailPage() {
@@ -27,6 +29,7 @@ export default function ProjectDetailPage() {
   const [loading, setLoading] = useState(true)
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false)
   const [selectedTask, setSelectedTask] = useState(null)
+  const [showStatusManager, setShowStatusManager] = useState(false)
 
   useEffect(() => {
     const fetchProjectData = async () => {
@@ -57,8 +60,10 @@ export default function ProjectDetailPage() {
   }, [id, navigate])
 
   const handleCreateTask = () => {
-    setSelectedTask(null)
-    setIsTaskModalOpen(true)
+    // Navigate to add task page with project info
+    navigate(`/tasks/add/${id}`, { 
+      state: { project: project } 
+    })
   }
 
   const handleEditTask = (task) => {
@@ -158,6 +163,13 @@ export default function ProjectDetailPage() {
           </div>
         </div>
         <div className="flex items-center space-x-3">
+          <Button 
+            variant="secondary"
+            onClick={() => setShowStatusManager(true)}
+          >
+            <Settings className="h-4 w-4 mr-2" />
+            Kelola Status
+          </Button>
           <Button onClick={handleCreateTask}>
             <Plus className="h-4 w-4 mr-2" />
             Buat Tugas
@@ -329,6 +341,13 @@ export default function ProjectDetailPage() {
         task={selectedTask}
         onSuccess={handleTaskModalSuccess}
         projectId={id}
+      />
+
+      <TaskStatusManager
+        projectId={id}
+        isOpen={showStatusManager}
+        onClose={() => setShowStatusManager(false)}
+        onSuccess={handleTaskModalSuccess}
       />
     </div>
   )

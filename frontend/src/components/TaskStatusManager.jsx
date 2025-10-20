@@ -36,7 +36,7 @@ export default function TaskStatusManager({ projectId, isOpen, onClose, onSucces
     try {
       setLoading(true)
       const response = await tasksAPI.getTaskStatuses(projectId)
-      setStatuses(response.data.statuses || [])
+      setStatuses(response.data.data || [])
     } catch (error) {
       console.error('Error fetching task statuses:', error)
       toast.error('Gagal mengambil status task')
@@ -54,12 +54,12 @@ export default function TaskStatusManager({ projectId, isOpen, onClose, onSucces
     try {
       setLoading(true)
       const statusData = {
-        ...newStatus,
-        project_id: projectId,
+        name: newStatus.name,
+        color: newStatus.color,
         position: statuses.length
       }
       
-      await tasksAPI.createTaskStatus(statusData)
+      await tasksAPI.createTaskStatus(projectId, statusData)
       toast.success('Status berhasil dibuat!')
       setNewStatus({ name: '', color: '#6B7280', position: 0 })
       fetchStatuses()

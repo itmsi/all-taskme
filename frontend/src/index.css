@@ -291,4 +291,60 @@ body {
   .text-gradient {
     @apply bg-gradient-to-r from-primary-600 to-primary-800 bg-clip-text text-transparent;
   }
+  
+  /* Task description prose styling */
+  .task-description-prose {
+    @apply prose prose-sm max-w-none;
+  }
+  
+  .task-description-prose h1,
+  .task-description-prose h2,
+  .task-description-prose h3 {
+    @apply font-semibold text-gray-900 mt-2 mb-1;
+  }
+  
+  .task-description-prose h1 {
+    @apply text-lg;
+  }
+  
+  .task-description-prose h2 {
+    @apply text-base;
+  }
+  
+  .task-description-prose h3 {
+    @apply text-sm;
+  }
+  
+  .task-description-prose p {
+    @apply text-gray-600 mb-1 leading-relaxed;
+  }
+  
+  .task-description-prose strong {
+    @apply font-semibold text-gray-900;
+  }
+  
+  .task-description-prose em {
+    @apply italic;
+  }
+  
+  .task-description-prose ul,
+  .task-description-prose ol {
+    @apply mb-1 pl-4;
+  }
+  
+  .task-description-prose li {
+    @apply text-gray-600 mb-0.5;
+  }
+  
+  .task-description-prose a {
+    @apply text-blue-600 underline hover:text-blue-800;
+  }
+  
+  /* Line clamp for task cards */
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
 }

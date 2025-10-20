@@ -12,6 +12,7 @@ import ProjectsPage from './pages/ProjectsPage'
 import ProjectDetailPage from './pages/ProjectDetailPage'
 import TasksPage from './pages/TasksPage'
 import TaskDetailPage from './pages/TaskDetailPage'
+import AddTaskPage from './pages/AddTaskPage'
 import ProfilePage from './pages/ProfilePage'
 import AnalyticsPage from './pages/AnalyticsPage'
 import NotificationsPage from './pages/NotificationsPage'
@@ -66,6 +67,8 @@ function AppRoutes() {
         <Route path="projects" element={<ProjectsPage />} />
         <Route path="projects/:id" element={<ProjectDetailPage />} />
         <Route path="tasks" element={<TasksPage />} />
+        <Route path="tasks/add" element={<AddTaskPage />} />
+        <Route path="tasks/add/:projectId" element={<AddTaskPage />} />
         <Route path="tasks/:id" element={<TaskDetailPage />} />
         <Route path="analytics" element={<AnalyticsPage />} />
         <Route path="notifications" element={<NotificationsPage />} />

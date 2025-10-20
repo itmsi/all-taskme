@@ -105,7 +105,7 @@ export default function TaskModal({ isOpen, onClose, task = null, projectId = nu
   const fetchTaskStatuses = async (projectId) => {
     try {
       const response = await tasksAPI.getTaskStatuses(projectId)
-      setStatuses(response.data.statuses || [])
+      setStatuses(response.data.data || [])
     } catch (error) {
       console.error('Error fetching task statuses:', error)
     }

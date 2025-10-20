@@ -258,7 +258,7 @@ router.get('/statuses/project/:projectId', authenticateToken, taskController.get
  *       403:
  *         $ref: '#/components/responses/ForbiddenError'
  */
-router.post('/statuses', authenticateToken, validate(schemas.createTaskStatus), taskController.createTaskStatus);
+router.post('/statuses/project/:projectId', authenticateToken, validate(schemas.createTaskStatus), taskController.createTaskStatus);
 
 /**
  * @swagger

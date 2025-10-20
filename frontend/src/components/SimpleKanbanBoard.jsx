@@ -60,7 +60,10 @@ function TaskItem({ task, onEdit }) {
       </div>
       
       {task.description && (
-        <p className="text-xs text-gray-500 mb-2 line-clamp-2">{task.description}</p>
+        <div 
+          className="text-xs text-gray-500 mb-2 line-clamp-2 task-description-prose"
+          dangerouslySetInnerHTML={{ __html: task.description }}
+        />
       )}
       
       <div className="flex items-center justify-between text-xs">

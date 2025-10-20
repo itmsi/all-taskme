@@ -90,10 +90,7 @@ export default function ProjectModal({ isOpen, onClose, project = null, onSucces
 
     try {
       for (const status of defaultStatuses) {
-        await tasksAPI.createTaskStatus({
-          ...status,
-          project_id: projectId
-        })
+        await tasksAPI.createTaskStatus(projectId, status)
       }
     } catch (error) {
       console.error('Error creating default statuses:', error)
