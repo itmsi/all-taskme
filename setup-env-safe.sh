@@ -55,10 +55,10 @@ fi
 echo -e "${BLUE}🔄 Restarting containers with environment variables...${NC}"
 
 # Stop containers
-docker-compose -f docker-compose.server.yml down
+docker-compose -f docker-compose.server.yml --env-file .env.server down
 
 # Start containers with environment variables
-docker-compose -f docker-compose.server.yml up -d
+docker-compose -f docker-compose.server.yml --env-file .env.server up -d
 
 echo -e "${BLUE}⏳ Waiting for services to start...${NC}"
 sleep 15
