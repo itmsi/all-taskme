@@ -25,8 +25,7 @@ COPY package*.json ./
 # Install only production dependencies
 RUN npm ci --only=production && npm cache clean --force
 
-# Copy built application
-COPY --from=builder /app/dist ./dist
+# Copy source code (backend doesn't need build step)
 COPY --from=builder /app/src ./src
 
 # Create non-root user
