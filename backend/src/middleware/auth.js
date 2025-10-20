@@ -17,7 +17,7 @@ const authenticateToken = async (req, res, next) => {
     
     // Get user data from database
     const userResult = await query(
-      'SELECT id, username, email, full_name, avatar_url, role, is_active FROM users WHERE id = $1 AND is_active = true',
+      'SELECT id, email, full_name, avatar_url, role, is_active FROM users WHERE id = $1 AND is_active = true',
       [decoded.userId]
     );
 
@@ -81,7 +81,7 @@ const optionalAuth = async (req, res, next) => {
     if (token) {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       const userResult = await query(
-        'SELECT id, username, email, full_name, avatar_url, role, is_active FROM users WHERE id = $1 AND is_active = true',
+        'SELECT id, email, full_name, avatar_url, role, is_active FROM users WHERE id = $1 AND is_active = true',
         [decoded.userId]
       );
 

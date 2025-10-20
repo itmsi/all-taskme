@@ -16,8 +16,8 @@ const getUserProjects = async (req, res) => {
       paramCount = 0;
     } else {
       // Regular users can only see projects they created or are collaborators in
-      whereClause = `(p.created_by = $1 OR EXISTS (
-        SELECT 1 FROM project_collaborators pc WHERE pc.project_id = p.id AND pc.user_id = $1
+      whereClause = `(p.created_by = $1::uuid OR EXISTS (
+        SELECT 1 FROM project_collaborators pc WHERE pc.project_id = p.id AND pc.user_id = $1::uuid
       ))`;
       params = [userId];
       paramCount = 1;
@@ -40,14 +40,14 @@ const getUserProjects = async (req, res) => {
         p.id, p.name, p.description, p.status, p.start_date, p.end_date, p.progress,
         p.created_at, p.updated_at,
         t.id as team_id, t.name as team_name,
-        u.username as created_by_username, u.full_name as created_by_name,
+        u.full_name as created_by_name,
         CASE WHEN $1 = 'admin' THEN 'admin'
-             WHEN p.created_by = $2 THEN 'owner' 
+             WHEN p.created_by = $2::uuid THEN 'owner' 
              ELSE pc.role END as user_role
       FROM projects p
       LEFT JOIN teams t ON p.team_id = t.id
       LEFT JOIN users u ON p.created_by = u.id
-      LEFT JOIN project_collaborators pc ON p.id = pc.project_id AND pc.user_id = $2
+      LEFT JOIN project_collaborators pc ON p.id = pc.project_id AND pc.user_id = $2::uuid
       WHERE ${whereClause}
       ORDER BY p.created_at DESC
     `, [userRole, userId, ...params]);
@@ -146,7 +146,7 @@ const getProjectById = async (req, res) => {
         p.id, p.name, p.description, p.status, p.start_date, p.end_date, p.progress,
         p.created_at, p.updated_at,
         t.id as team_id, t.name as team_name, t.description as team_description,
-        u.id as created_by_id, u.username as created_by_username, u.full_name as created_by_name,
+        u.id as created_by_id, u.full_name as created_by_name,
         CASE WHEN $3 = 'admin' THEN 'admin'
              WHEN p.created_by = $2 THEN 'owner' 
              ELSE pc.role END as user_role
@@ -323,7 +323,7 @@ const getProjectCollaborators = async (req, res) => {
     const result = await query(`
       SELECT 
         pc.id, pc.role, pc.added_at,
-        u.id as user_id, u.username, u.email, u.full_name, u.avatar_url
+        u.id as user_id, u.email, u.full_name, u.avatar_url
       FROM project_collaborators pc
       JOIN users u ON pc.user_id = u.id
       WHERE pc.project_id = $1
@@ -372,7 +372,7 @@ const addProjectCollaborator = async (req, res) => {
 
     // Check if user exists and is active
     const userCheck = await query(
-      'SELECT id, username, full_name FROM users WHERE id = $1 AND is_active = true',
+      'SELECT id, full_name FROM users WHERE id = $1 AND is_active = true',
       [user_id]
     );
 
@@ -539,7 +539,7 @@ const getProjectAnalytics = async (req, res) => {
     // Get collaborator activity
     const collaboratorActivity = await query(`
       SELECT 
-        u.id, u.username, u.full_name,
+        u.id, u.email, u.full_name,
         COUNT(t.id) as tasks_assigned,
         COUNT(CASE WHEN ts.name = 'Done' THEN 1 END) as tasks_completed
       FROM project_collaborators pc
@@ -548,7 +548,7 @@ const getProjectAnalytics = async (req, res) => {
       LEFT JOIN tasks t ON tm.task_id = t.id AND t.project_id = $1
       LEFT JOIN task_statuses ts ON t.status_id = ts.id
       WHERE pc.project_id = $1
-      GROUP BY u.id, u.username, u.full_name
+      GROUP BY u.id, u.email, u.full_name
       ORDER BY tasks_assigned DESC
     `, [projectId]);
 

@@ -52,7 +52,7 @@ const getProjectTasks = async (req, res) => {
         t.id, t.title, t.description, t.priority, t.due_date, t.estimated_hours, t.actual_hours,
         t.created_at, t.updated_at,
         ts.id as status_id, ts.name as status_name, ts.color as status_color,
-        u.username as created_by_username, u.full_name as created_by_name
+        u.full_name as created_by_name
       FROM tasks t
       LEFT JOIN task_statuses ts ON t.status_id = ts.id
       LEFT JOIN users u ON t.created_by = u.id
@@ -78,7 +78,7 @@ const createTask = async (req, res) => {
   try {
     const projectId = req.params.projectId;
     const userId = req.user.id;
-    const { title, description, status_id, priority = 'medium', due_date, estimated_hours, assigned_to } = req.body;
+    const { title, description, status_id, priority = 'medium', due_date, estimated_hours, assigned_to, location_name, location_latitude, location_longitude, location_address } = req.body;
 
     if (!title) {
       return res.status(400).json({
@@ -102,11 +102,29 @@ const createTask = async (req, res) => {
       });
     }
 
-    const result = await query(`
-      INSERT INTO tasks (title, description, project_id, created_by, status_id, priority, due_date, estimated_hours)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-      RETURNING id, title, description, priority, due_date, estimated_hours, actual_hours, created_at
-    `, [title, description, projectId, userId, status_id || null, priority, due_date || null, estimated_hours || null]);
+    // Check if location columns exist by trying a simple query first
+    let hasLocationColumns = false;
+    try {
+      await query(`SELECT location_name FROM tasks LIMIT 1`);
+      hasLocationColumns = true;
+    } catch (error) {
+      hasLocationColumns = false;
+    }
+
+    let result;
+    if (hasLocationColumns) {
+      result = await query(`
+        INSERT INTO tasks (title, description, project_id, created_by, status_id, priority, due_date, estimated_hours, location_name, location_latitude, location_longitude, location_address)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+        RETURNING id, title, description, priority, due_date, estimated_hours, actual_hours, location_name, location_latitude, location_longitude, location_address, created_at
+      `, [title, description, projectId, userId, status_id || null, priority, due_date || null, estimated_hours || null, location_name, location_latitude || null, location_longitude || null, location_address]);
+    } else {
+      result = await query(`
+        INSERT INTO tasks (title, description, project_id, created_by, status_id, priority, due_date, estimated_hours)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        RETURNING id, title, description, priority, due_date, estimated_hours, actual_hours, created_at
+      `, [title, description, projectId, userId, status_id || null, priority, due_date || null, estimated_hours || null]);
+    }
 
     const taskId = result.rows[0].id;
 
@@ -173,20 +191,43 @@ const getTaskById = async (req, res) => {
       }
     }
 
-    // First get basic task info
-    const taskResult = await query(`
-      SELECT 
-        t.id, t.title, t.description, t.priority, t.due_date, t.estimated_hours, t.actual_hours,
-        t.created_at, t.updated_at,
-        ts.id as status_id, ts.name as status_name, ts.color as status_color,
-        p.id as project_id, p.name as project_name,
-        u.username as created_by_username, u.full_name as created_by_name
-      FROM tasks t
-      LEFT JOIN task_statuses ts ON t.status_id = ts.id
-      LEFT JOIN projects p ON t.project_id = p.id
-      LEFT JOIN users u ON t.created_by = u.id
-      WHERE t.id = $1
-    `, [taskId]);
+    // First get basic task info - check if location columns exist
+    let taskResult;
+    try {
+      taskResult = await query(`
+        SELECT 
+          t.id, t.title, t.description, t.priority, t.due_date, t.estimated_hours, t.actual_hours,
+          t.created_at, t.updated_at,
+          COALESCE(t.location_name, '') as location_name, 
+          COALESCE(t.location_latitude::text, '') as location_latitude, 
+          COALESCE(t.location_longitude::text, '') as location_longitude, 
+          COALESCE(t.location_address, '') as location_address,
+          ts.id as status_id, ts.name as status_name, ts.color as status_color,
+          p.id as project_id, p.name as project_name,
+          u.full_name as created_by_name
+        FROM tasks t
+        LEFT JOIN task_statuses ts ON t.status_id = ts.id
+        LEFT JOIN projects p ON t.project_id = p.id
+        LEFT JOIN users u ON t.created_by = u.id
+        WHERE t.id = $1
+      `, [taskId]);
+    } catch (error) {
+      // If location columns don't exist, use basic query
+      taskResult = await query(`
+        SELECT 
+          t.id, t.title, t.description, t.priority, t.due_date, t.estimated_hours, t.actual_hours,
+          t.created_at, t.updated_at,
+          '' as location_name, '' as location_latitude, '' as location_longitude, '' as location_address,
+          ts.id as status_id, ts.name as status_name, ts.color as status_color,
+          p.id as project_id, p.name as project_name,
+          u.full_name as created_by_name
+        FROM tasks t
+        LEFT JOIN task_statuses ts ON t.status_id = ts.id
+        LEFT JOIN projects p ON t.project_id = p.id
+        LEFT JOIN users u ON t.created_by = u.id
+        WHERE t.id = $1
+      `, [taskId]);
+    }
 
     if (taskResult.rows.length === 0) {
       return res.status(404).json({
@@ -199,7 +240,6 @@ const getTaskById = async (req, res) => {
     const membersResult = await query(`
       SELECT 
         tm.user_id as id,
-        u.username,
         u.full_name,
         u.avatar_url,
         tm.assigned_at
@@ -229,7 +269,7 @@ const updateTask = async (req, res) => {
   try {
     const taskId = req.params.id;
     const userId = req.user.id;
-    const { title, description, status_id, priority, due_date, estimated_hours, actual_hours } = req.body;
+    const { title, description, status_id, priority, due_date, estimated_hours, actual_hours, location_name, location_latitude, location_longitude, location_address } = req.body;
 
     // Check if user has permission to update this task
     const permissionCheck = await query(`
@@ -287,6 +327,38 @@ const updateTask = async (req, res) => {
       updateFields.push(`actual_hours = $${paramCount}`);
       params.push(actual_hours);
       paramCount++;
+    }
+    // Check if location columns exist in the database
+    let hasLocationColumns = false;
+    try {
+      await query(`SELECT location_name FROM tasks LIMIT 1`);
+      hasLocationColumns = true;
+    } catch (error) {
+      hasLocationColumns = false;
+    }
+
+    // Only add location fields if they exist in the database
+    if (hasLocationColumns) {
+      if (location_name !== undefined) {
+        updateFields.push(`location_name = $${paramCount}`);
+        params.push(location_name);
+        paramCount++;
+      }
+      if (location_latitude !== undefined) {
+        updateFields.push(`location_latitude = $${paramCount}`);
+        params.push(location_latitude === '' ? null : location_latitude);
+        paramCount++;
+      }
+      if (location_longitude !== undefined) {
+        updateFields.push(`location_longitude = $${paramCount}`);
+        params.push(location_longitude === '' ? null : location_longitude);
+        paramCount++;
+      }
+      if (location_address !== undefined) {
+        updateFields.push(`location_address = $${paramCount}`);
+        params.push(location_address);
+        paramCount++;
+      }
     }
 
     if (updateFields.length === 0) {
@@ -510,7 +582,7 @@ const getTaskMembers = async (req, res) => {
     const result = await query(`
       SELECT 
         tm.id, tm.assigned_at,
-        u.id as user_id, u.username, u.email, u.full_name, u.avatar_url
+        u.id as user_id, u.email, u.full_name, u.avatar_url
       FROM task_members tm
       JOIN users u ON tm.user_id = u.id
       WHERE tm.task_id = $1
@@ -563,7 +635,7 @@ const addTaskMember = async (req, res) => {
 
     // Check if user exists and is active
     const userCheck = await query(
-      'SELECT id, username, full_name FROM users WHERE id = $1 AND is_active = true',
+      'SELECT id, full_name FROM users WHERE id = $1 AND is_active = true',
       [user_id]
     );
 
@@ -762,7 +834,7 @@ const getTaskAttachments = async (req, res) => {
     const result = await query(`
       SELECT 
         ta.id, ta.filename, ta.original_name, ta.file_size, ta.mime_type, ta.uploaded_at,
-        u.username as uploaded_by_username, u.full_name as uploaded_by_name
+        u.full_name as uploaded_by_name
       FROM task_attachments ta
       LEFT JOIN users u ON ta.uploaded_by = u.id
       WHERE ta.task_id = $1
@@ -1002,7 +1074,7 @@ const getTaskComments = async (req, res) => {
     const result = await query(`
       SELECT 
         tc.id, tc.message, tc.created_at,
-        u.id as user_id, u.username, u.full_name, u.avatar_url
+        u.id as user_id, u.email, u.full_name, u.avatar_url
       FROM task_comments tc
       JOIN users u ON tc.user_id = u.id
       WHERE tc.task_id = $1
@@ -1075,7 +1147,7 @@ const createTaskComment = async (req, res) => {
 
     // Get user info for the response
     const userResult = await query(`
-      SELECT id, username, full_name, avatar_url
+      SELECT id, full_name, avatar_url
       FROM users
       WHERE id = $1
     `, [userId]);
@@ -1085,7 +1157,6 @@ const createTaskComment = async (req, res) => {
       message: result.rows[0].message,
       created_at: result.rows[0].created_at,
       user_id: userId,
-      username: userResult.rows[0].username,
       full_name: userResult.rows[0].full_name,
       avatar_url: userResult.rows[0].avatar_url
     };

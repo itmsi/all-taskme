@@ -19,19 +19,19 @@ const { generateToken } = require('../utils/jwt');
 
 const register = async (req, res) => {
   try {
-    const { username, email, password, full_name } = req.body;
+    const { email, password, first_name, last_name } = req.body;
 
     // Check if user already exists
     const existingUser = await query(
-      'SELECT id FROM users WHERE email = $1 OR username = $2',
-      [email, username]
+      'SELECT id FROM users WHERE email = $1',
+      [email]
     );
 
     if (existingUser.rows.length > 0) {
       return res.status(409).json({
         success: false,
         error: 'User sudah terdaftar',
-        message: 'Email atau username sudah digunakan'
+        message: 'Email sudah digunakan'
       });
     }
 
@@ -40,10 +40,10 @@ const register = async (req, res) => {
 
     // Create user
     const result = await query(
-      `INSERT INTO users (username, email, password_hash, full_name) 
-       VALUES ($1, $2, $3, $4) 
-       RETURNING id, username, email, full_name, avatar_url, role, is_active, created_at`,
-      [username, email, passwordHash, full_name]
+      `INSERT INTO users (email, password_hash, full_name, username) 
+       VALUES ($1, $2, $3, $4)
+       RETURNING id, email, full_name, avatar_url, role, is_active, created_at`,
+      [email, passwordHash, `${first_name} ${last_name}`, email.split('@')[0]]
     );
 
     const user = result.rows[0];
@@ -57,7 +57,6 @@ const register = async (req, res) => {
       token,
       user: {
         id: user.id,
-        username: user.username,
         email: user.email,
         full_name: user.full_name,
         avatar_url: user.avatar_url,
@@ -82,7 +81,7 @@ const login = async (req, res) => {
 
     // Find user by email
     const result = await query(
-      'SELECT id, username, email, password_hash, full_name, avatar_url, role, is_active FROM users WHERE email = $1',
+      'SELECT id, email, password_hash, full_name, avatar_url, role, is_active FROM users WHERE email = $1',
       [email]
     );
 
@@ -124,7 +123,6 @@ const login = async (req, res) => {
       token,
       user: {
         id: user.id,
-        username: user.username,
         email: user.email,
         full_name: user.full_name,
         avatar_url: user.avatar_url,
@@ -145,7 +143,7 @@ const login = async (req, res) => {
 const getProfile = async (req, res) => {
   try {
     const result = await query(
-      `SELECT id, username, email, full_name, avatar_url, role, is_active, created_at 
+      `SELECT id, email, full_name, avatar_url, role, is_active, created_at 
        FROM users WHERE id = $1`,
       [req.user.id]
     );

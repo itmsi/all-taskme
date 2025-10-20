@@ -15,7 +15,7 @@ const setupSocket = (io) => {
       
       // Get user data
       const userResult = await query(
-        'SELECT id, username, email, full_name, avatar_url FROM users WHERE id = $1 AND is_active = true',
+        'SELECT id, email, full_name, avatar_url FROM users WHERE id = $1 AND is_active = true',
         [decoded.userId]
       );
 
@@ -32,7 +32,7 @@ const setupSocket = (io) => {
   });
 
   io.on('connection', (socket) => {
-    console.log(`User ${socket.user.username} connected with socket ${socket.id}`);
+    console.log(`User ${socket.user.full_name} connected with socket ${socket.id}`);
 
     // Join task room for chat
     socket.on('join_task', async (taskId) => {
@@ -57,7 +57,7 @@ const setupSocket = (io) => {
         socket.join(roomName);
         socket.emit('joined_task', { taskId, roomName });
         
-        console.log(`User ${socket.user.username} joined task room: ${roomName}`);
+        console.log(`User ${socket.user.full_name} joined task room: ${roomName}`);
       } catch (error) {
         console.error('Join task error:', error);
         socket.emit('error', { message: 'Failed to join task room' });
@@ -69,7 +69,7 @@ const setupSocket = (io) => {
       const roomName = `task_${taskId}`;
       socket.leave(roomName);
       socket.emit('left_task', { taskId, roomName });
-      console.log(`User ${socket.user.username} left task room: ${roomName}`);
+      console.log(`User ${socket.user.full_name} left task room: ${roomName}`);
     });
 
     // Send message in task chat
@@ -111,8 +111,8 @@ const setupSocket = (io) => {
           task_id: taskId,
           user: {
             id: socket.user.id,
-            username: socket.user.username,
-            full_name: socket.user.full_name,
+            first_name: socket.user.first_name,
+            last_name: socket.user.last_name,
             avatar_url: socket.user.avatar_url
           },
           message: message.trim(),
@@ -123,7 +123,7 @@ const setupSocket = (io) => {
         const roomName = `task_${taskId}`;
         io.to(roomName).emit('new_message', savedMessage);
 
-        console.log(`Message sent in task ${taskId} by ${socket.user.username}`);
+        console.log(`Message sent in task ${taskId} by ${socket.user.full_name}`);
       } catch (error) {
         console.error('Send message error:', error);
         socket.emit('error', { message: 'Failed to send message' });
@@ -183,12 +183,12 @@ const setupSocket = (io) => {
       const roomName = `user_${socket.userId}`;
       socket.join(roomName);
       socket.emit('joined_notifications', { roomName });
-      console.log(`User ${socket.user.username} joined notifications room: ${roomName}`);
+      console.log(`User ${socket.user.full_name} joined notifications room: ${roomName}`);
     });
 
     // Handle disconnect
     socket.on('disconnect', () => {
-      console.log(`User ${socket.user.username} disconnected`);
+      console.log(`User ${socket.user.full_name} disconnected`);
     });
   });
 

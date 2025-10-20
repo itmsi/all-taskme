@@ -27,6 +27,7 @@ import Input from '../components/Input'
 import LoadingSpinner from '../components/LoadingSpinner'
 import ImagePreviewModal from '../components/ImagePreviewModal'
 import RichTextEditor from '../components/RichTextEditor'
+import LocationInput from '../components/LocationInput'
 import { tasksAPI, usersAPI } from '../services/api'
 import { useSocket } from '../contexts/SocketContext'
 
@@ -737,7 +738,11 @@ export default function TaskDetailPage() {
           description: taskData.description,
           priority: taskData.priority,
           due_date: taskData.due_date ? taskData.due_date.split('T')[0] : '',
-          estimated_hours: taskData.estimated_hours || ''
+          estimated_hours: taskData.estimated_hours || '',
+          location_name: taskData.location_name || '',
+          location_latitude: taskData.location_latitude || '',
+          location_longitude: taskData.location_longitude || '',
+          location_address: taskData.location_address || ''
         })
         setAssignedMembers(taskData.members || [])
         setAvailableUsers(usersResponse.data.users || [])
@@ -831,6 +836,16 @@ export default function TaskDetailPage() {
         alert('Terjadi kesalahan saat mengupdate member. Silakan coba lagi.')
       }
     }
+  }
+
+  const handleLocationChange = (locationData) => {
+    setEditedTask(prev => ({
+      ...prev,
+      location_name: locationData?.name || '',
+      location_latitude: locationData?.latitude || '',
+      location_longitude: locationData?.longitude || '',
+      location_address: locationData?.address || ''
+    }))
   }
 
   const handleSendMessage = async (content) => {
@@ -1092,6 +1107,42 @@ export default function TaskDetailPage() {
                     <div className="flex items-center text-sm text-gray-600">
                       <Clock className="h-4 w-4 mr-2" />
                       {task.estimated_hours ? `${task.estimated_hours}h` : 'Not estimated'}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                  {isEditing ? (
+                    <LocationInput
+                      value={editedTask.location_name || editedTask.location_latitude ? {
+                        name: editedTask.location_name,
+                        latitude: editedTask.location_latitude,
+                        longitude: editedTask.location_longitude,
+                        address: editedTask.location_address
+                      } : null}
+                      onChange={handleLocationChange}
+                    />
+                  ) : (
+                    <div className="text-sm text-gray-600">
+                      {task.location_name ? (
+                        <div className="flex items-start space-x-2">
+                          <MapPin className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <p className="font-medium">{task.location_name}</p>
+                            {task.location_address && (
+                              <p className="text-xs text-gray-500 mt-1">{task.location_address}</p>
+                            )}
+                            {task.location_latitude && task.location_longitude && (
+                              <p className="text-xs text-gray-500">
+                                {task.location_latitude}, {task.location_longitude}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        'No location specified'
+                      )}
                     </div>
                   )}
                 </div>

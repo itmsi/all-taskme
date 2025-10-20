@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { X, CheckSquare, Calendar, User, AlertCircle } from 'lucide-react'
 import Button from './Button'
 import Input from './Input'
+import LocationInput from './LocationInput'
 import { tasksAPI, projectsAPI, usersAPI } from '../services/api'
 import toast from 'react-hot-toast'
 
@@ -13,7 +14,11 @@ export default function TaskModal({ isOpen, onClose, task = null, projectId = nu
     due_date: '',
     estimated_hours: '',
     assigned_to: [],
-    status_id: ''
+    status_id: '',
+    location_name: '',
+    location_latitude: '',
+    location_longitude: '',
+    location_address: ''
   })
   const [loading, setLoading] = useState(false)
   const [projects, setProjects] = useState([])
@@ -31,7 +36,11 @@ export default function TaskModal({ isOpen, onClose, task = null, projectId = nu
           due_date: task.due_date ? task.due_date.split('T')[0] : '',
           estimated_hours: task.estimated_hours || '',
           assigned_to: task.assigned_to || [],
-          status_id: task.status_id || ''
+          status_id: task.status_id || '',
+          location_name: task.location_name || '',
+          location_latitude: task.location_latitude || '',
+          location_longitude: task.location_longitude || '',
+          location_address: task.location_address || ''
         })
         setSelectedProjectId(task.project_id || projectId)
       } else {
@@ -42,7 +51,11 @@ export default function TaskModal({ isOpen, onClose, task = null, projectId = nu
           due_date: '',
           estimated_hours: '',
           assigned_to: [],
-          status_id: ''
+          status_id: '',
+          location_name: '',
+          location_latitude: '',
+          location_longitude: '',
+          location_address: ''
         })
         setSelectedProjectId(projectId)
       }
@@ -136,6 +149,16 @@ export default function TaskModal({ isOpen, onClose, task = null, projectId = nu
       assigned_to: prev.assigned_to.includes(userId)
         ? prev.assigned_to.filter(id => id !== userId)
         : [...prev.assigned_to, userId]
+    }))
+  }
+
+  const handleLocationChange = (locationData) => {
+    setFormData(prev => ({
+      ...prev,
+      location_name: locationData?.name || '',
+      location_latitude: locationData?.latitude || '',
+      location_longitude: locationData?.longitude || '',
+      location_address: locationData?.address || ''
     }))
   }
 
@@ -268,6 +291,18 @@ export default function TaskModal({ isOpen, onClose, task = null, projectId = nu
                   ))}
                 </select>
               </div>
+            </div>
+
+            <div>
+              <LocationInput
+                value={formData.location_name || formData.location_latitude ? {
+                  name: formData.location_name,
+                  latitude: formData.location_latitude,
+                  longitude: formData.location_longitude,
+                  address: formData.location_address
+                } : null}
+                onChange={handleLocationChange}
+              />
             </div>
 
             <div>

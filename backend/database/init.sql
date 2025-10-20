@@ -87,6 +87,10 @@ CREATE TABLE IF NOT EXISTS tasks (
     actual_hours INTEGER DEFAULT 0,
     project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
     created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    location_name VARCHAR(255),
+    location_latitude DECIMAL(10, 8),
+    location_longitude DECIMAL(11, 8),
+    location_address TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
