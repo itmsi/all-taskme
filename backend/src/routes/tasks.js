@@ -956,4 +956,154 @@ router.delete('/:id/attachments/:attachmentId', authenticateToken, taskControlle
 router.get('/:id/comments', authenticateToken, taskController.getTaskComments);
 router.post('/:id/comments', authenticateToken, taskController.createTaskComment);
 
+/**
+ * @swagger
+ * /api/tasks/{id}/extensions:
+ *   get:
+ *     summary: Get task extensions
+ *     tags: [Tasks]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Task ID
+ *     responses:
+ *       200:
+ *         description: Task extensions data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   nullable: true
+ *                   properties:
+ *                     number_phone:
+ *                       type: string
+ *                     sales_name:
+ *                       type: string
+ *                     name_pt:
+ *                       type: string
+ *                     iup:
+ *                       type: string
+ *                     latitude:
+ *                       type: number
+ *                     longitude:
+ *                       type: number
+ *                     photo_link:
+ *                       type: string
+ *                     count_photo:
+ *                       type: integer
+ *                     voice_link:
+ *                       type: string
+ *                     count_voice:
+ *                       type: integer
+ *                     voice_transcript:
+ *                       type: string
+ *                     is_completed:
+ *                       type: boolean
+ *                     created_at:
+ *                       type: string
+ *                       format: date-time
+ *                     updated_at:
+ *                       type: string
+ *                       format: date-time
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ */
+router.get('/:id/extensions', authenticateToken, taskController.getTaskExtensions);
+
+/**
+ * @swagger
+ * /api/tasks/{id}/extensions:
+ *   put:
+ *     summary: Update task extensions
+ *     tags: [Tasks]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Task ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               number_phone:
+ *                 type: string
+ *                 example: "+6281234567890"
+ *               sales_name:
+ *                 type: string
+ *                 example: "John Doe"
+ *               name_pt:
+ *                 type: string
+ *                 example: "PT. Contoh Perusahaan"
+ *               iup:
+ *                 type: string
+ *                 example: "IUP-001"
+ *               latitude:
+ *                 type: number
+ *                 example: -6.200000
+ *               longitude:
+ *                 type: number
+ *                 example: 106.816666
+ *               photo_link:
+ *                 type: string
+ *                 example: "https://example.com/photo.jpg"
+ *               count_photo:
+ *                 type: integer
+ *                 example: 5
+ *               voice_link:
+ *                 type: string
+ *                 example: "https://example.com/voice.mp3"
+ *               count_voice:
+ *                 type: integer
+ *                 example: 2
+ *               voice_transcript:
+ *                 type: string
+ *                 example: "Transkrip percakapan..."
+ *               is_completed:
+ *                 type: boolean
+ *                 example: true
+ *     responses:
+ *       200:
+ *         description: Task extensions updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Task extensions berhasil diupdate"
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ */
+router.put('/:id/extensions', authenticateToken, validate(schemas.updateTaskExtensions), taskController.updateTaskExtensions);
+
 module.exports = router;

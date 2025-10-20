@@ -130,6 +130,8 @@ export const tasksAPI = {
   deleteTaskStatus: (id) => api.delete(`/tasks/statuses/${id}`),
   updateTaskStatusKanban: (id, statusId) => api.put(`/tasks/${id}/status`, { status_id: statusId }),
   updateTaskOrder: (projectId, tasks) => api.put(`/tasks/project/${projectId}/order`, { tasks }),
+  getTaskExtensions: (id) => api.get(`/tasks/${id}/extensions`),
+  updateTaskExtensions: (id, extensionsData) => api.put(`/tasks/${id}/extensions`, extensionsData),
 }
 
 // Notifications API

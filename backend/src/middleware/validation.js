@@ -88,7 +88,20 @@ const schemas = {
     location_name: Joi.string().max(255).allow('', null),
     location_latitude: Joi.number().allow('', null),
     location_longitude: Joi.number().allow('', null),
-    location_address: Joi.string().max(1000).allow('', null)
+    location_address: Joi.string().max(1000).allow('', null),
+    // Task extensions fields
+    number_phone: Joi.string().max(20).allow('', null),
+    sales_name: Joi.string().max(100).allow('', null),
+    name_pt: Joi.string().max(200).allow('', null),
+    iup: Joi.string().max(100).allow('', null),
+    latitude: Joi.number().allow('', null),
+    longitude: Joi.number().allow('', null),
+    photo_link: Joi.string().max(500).allow('', null),
+    count_photo: Joi.number().integer().min(0).allow('', null),
+    voice_link: Joi.string().max(500).allow('', null),
+    count_voice: Joi.number().integer().min(0).allow('', null),
+    voice_transcript: Joi.string().max(2000).allow('', null),
+    is_completed: Joi.boolean().allow('', null)
   }),
 
   updateTask: Joi.object({
@@ -102,7 +115,20 @@ const schemas = {
     location_name: Joi.string().max(255).allow('', null),
     location_latitude: Joi.number().allow('', null),
     location_longitude: Joi.number().allow('', null),
-    location_address: Joi.string().max(1000).allow('', null)
+    location_address: Joi.string().max(1000).allow('', null),
+    // Task extensions fields
+    number_phone: Joi.string().max(20).allow('', null),
+    sales_name: Joi.string().max(100).allow('', null),
+    name_pt: Joi.string().max(200).allow('', null),
+    iup: Joi.string().max(100).allow('', null),
+    latitude: Joi.number().allow('', null),
+    longitude: Joi.number().allow('', null),
+    photo_link: Joi.string().max(500).allow('', null),
+    count_photo: Joi.number().integer().min(0).allow('', null),
+    voice_link: Joi.string().max(500).allow('', null),
+    count_voice: Joi.number().integer().min(0).allow('', null),
+    voice_transcript: Joi.string().max(2000).allow('', null),
+    is_completed: Joi.boolean().allow('', null)
   }),
 
   // Task status schemas
@@ -116,6 +142,22 @@ const schemas = {
     name: Joi.string().min(2).max(50),
     color: Joi.string().pattern(/^#[0-9A-F]{6}$/i),
     position: Joi.number().integer().min(0)
+  }),
+
+  // Task extensions schemas
+  updateTaskExtensions: Joi.object({
+    number_phone: Joi.string().max(20).allow('', null),
+    sales_name: Joi.string().max(100).allow('', null),
+    name_pt: Joi.string().max(200).allow('', null),
+    iup: Joi.string().max(100).allow('', null),
+    latitude: Joi.number().allow('', null),
+    longitude: Joi.number().allow('', null),
+    photo_link: Joi.string().max(500).allow('', null),
+    count_photo: Joi.number().integer().min(0).allow('', null),
+    voice_link: Joi.string().max(500).allow('', null),
+    count_voice: Joi.number().integer().min(0).allow('', null),
+    voice_transcript: Joi.string().max(2000).allow('', null),
+    is_completed: Joi.boolean().allow('', null)
   }),
 
   // Notification schemas

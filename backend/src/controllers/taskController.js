@@ -1,5 +1,22 @@
 const { query } = require('../database/connection');
 
+// Helper function untuk validasi koordinat
+const validateCoordinate = (value, type) => {
+  if (value === null || value === undefined || value === '') return null;
+  
+  const num = parseFloat(value);
+  if (isNaN(num)) return null;
+  
+  // Validasi range koordinat geografis
+  if (type === 'latitude') {
+    return (num >= -90 && num <= 90) ? num : null;
+  } else if (type === 'longitude') {
+    return (num >= -180 && num <= 180) ? num : null;
+  }
+  
+  return num;
+};
+
 // Get all tasks for a project
 const getProjectTasks = async (req, res) => {
   try {
@@ -78,7 +95,13 @@ const createTask = async (req, res) => {
   try {
     const projectId = req.params.projectId;
     const userId = req.user.id;
-    const { title, description, status_id, priority = 'medium', due_date, estimated_hours, assigned_to, location_name, location_latitude, location_longitude, location_address } = req.body;
+    const { 
+      title, description, status_id, priority = 'medium', due_date, estimated_hours, assigned_to, 
+      location_name, location_latitude, location_longitude, location_address,
+      // Task extensions fields
+      number_phone, sales_name, name_pt, iup, latitude, longitude, photo_link, 
+      count_photo, voice_link, count_voice, voice_transcript, is_completed 
+    } = req.body;
 
     if (!title) {
       return res.status(400).json({
@@ -127,6 +150,26 @@ const createTask = async (req, res) => {
     }
 
     const taskId = result.rows[0].id;
+
+    // Create task extensions if any extension fields are provided
+    const hasExtensionFields = number_phone || sales_name || name_pt || iup || 
+                              latitude || longitude || photo_link || count_photo || 
+                              voice_link || count_voice || voice_transcript || is_completed !== undefined;
+    
+    if (hasExtensionFields) {
+      await query(`
+        INSERT INTO task_extensions (
+          task_id, number_phone, sales_name, name_pt, iup, latitude, longitude, 
+          photo_link, count_photo, voice_link, count_voice, voice_transcript, is_completed
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+      `, [
+        taskId, number_phone, sales_name, name_pt, iup, 
+        validateCoordinate(latitude, 'latitude'), validateCoordinate(longitude, 'longitude'), photo_link, 
+        count_photo || 0, voice_link, count_voice || 0, voice_transcript, 
+        is_completed || false
+      ]);
+    }
 
     // Assign task to users if provided
     if (assigned_to && Array.isArray(assigned_to)) {
@@ -248,8 +291,19 @@ const getTaskById = async (req, res) => {
       WHERE tm.task_id = $1
     `, [taskId]);
 
+    // Get task extensions
+    const extensionsResult = await query(`
+      SELECT 
+        number_phone, sales_name, name_pt, iup, latitude, longitude, 
+        photo_link, count_photo, voice_link, count_voice, voice_transcript, is_completed,
+        created_at as extension_created_at, updated_at as extension_updated_at
+      FROM task_extensions
+      WHERE task_id = $1
+    `, [taskId]);
+
     const task = taskResult.rows[0];
     task.members = membersResult.rows;
+    task.extensions = extensionsResult.rows[0] || null;
 
     res.json({
       success: true,
@@ -269,7 +323,13 @@ const updateTask = async (req, res) => {
   try {
     const taskId = req.params.id;
     const userId = req.user.id;
-    const { title, description, status_id, priority, due_date, estimated_hours, actual_hours, location_name, location_latitude, location_longitude, location_address } = req.body;
+    const { 
+      title, description, status_id, priority, due_date, estimated_hours, actual_hours, 
+      location_name, location_latitude, location_longitude, location_address,
+      // Task extensions fields
+      number_phone, sales_name, name_pt, iup, latitude, longitude, photo_link, 
+      count_photo, voice_link, count_voice, voice_transcript, is_completed 
+    } = req.body;
 
 
     // Check if user has permission to update this task
@@ -376,6 +436,112 @@ const updateTask = async (req, res) => {
       WHERE id = $${paramCount}
       RETURNING id, title, description, priority, due_date, estimated_hours, actual_hours, updated_at
     `, params);
+
+    // Handle task extensions update
+    const hasExtensionFields = number_phone !== undefined || sales_name !== undefined || 
+                              name_pt !== undefined || iup !== undefined || latitude !== undefined || 
+                              longitude !== undefined || photo_link !== undefined || count_photo !== undefined || 
+                              voice_link !== undefined || count_voice !== undefined || voice_transcript !== undefined || 
+                              is_completed !== undefined;
+
+    if (hasExtensionFields) {
+      // Check if task extensions already exist
+      const existingExtensions = await query(
+        'SELECT id FROM task_extensions WHERE task_id = $1',
+        [taskId]
+      );
+
+      if (existingExtensions.rows.length > 0) {
+        // Update existing extensions
+        const extensionUpdateFields = [];
+        const extensionParams = [];
+        let extensionParamCount = 1;
+
+        if (number_phone !== undefined) {
+          extensionUpdateFields.push(`number_phone = $${extensionParamCount}`);
+          extensionParams.push(number_phone);
+          extensionParamCount++;
+        }
+        if (sales_name !== undefined) {
+          extensionUpdateFields.push(`sales_name = $${extensionParamCount}`);
+          extensionParams.push(sales_name);
+          extensionParamCount++;
+        }
+        if (name_pt !== undefined) {
+          extensionUpdateFields.push(`name_pt = $${extensionParamCount}`);
+          extensionParams.push(name_pt);
+          extensionParamCount++;
+        }
+        if (iup !== undefined) {
+          extensionUpdateFields.push(`iup = $${extensionParamCount}`);
+          extensionParams.push(iup);
+          extensionParamCount++;
+        }
+        if (latitude !== undefined) {
+          extensionUpdateFields.push(`latitude = $${extensionParamCount}`);
+          extensionParams.push(validateCoordinate(latitude, 'latitude'));
+          extensionParamCount++;
+        }
+        if (longitude !== undefined) {
+          extensionUpdateFields.push(`longitude = $${extensionParamCount}`);
+          extensionParams.push(validateCoordinate(longitude, 'longitude'));
+          extensionParamCount++;
+        }
+        if (photo_link !== undefined) {
+          extensionUpdateFields.push(`photo_link = $${extensionParamCount}`);
+          extensionParams.push(photo_link);
+          extensionParamCount++;
+        }
+        if (count_photo !== undefined) {
+          extensionUpdateFields.push(`count_photo = $${extensionParamCount}`);
+          extensionParams.push(count_photo);
+          extensionParamCount++;
+        }
+        if (voice_link !== undefined) {
+          extensionUpdateFields.push(`voice_link = $${extensionParamCount}`);
+          extensionParams.push(voice_link);
+          extensionParamCount++;
+        }
+        if (count_voice !== undefined) {
+          extensionUpdateFields.push(`count_voice = $${extensionParamCount}`);
+          extensionParams.push(count_voice);
+          extensionParamCount++;
+        }
+        if (voice_transcript !== undefined) {
+          extensionUpdateFields.push(`voice_transcript = $${extensionParamCount}`);
+          extensionParams.push(voice_transcript);
+          extensionParamCount++;
+        }
+        if (is_completed !== undefined) {
+          extensionUpdateFields.push(`is_completed = $${extensionParamCount}`);
+          extensionParams.push(is_completed);
+          extensionParamCount++;
+        }
+
+        if (extensionUpdateFields.length > 0) {
+          extensionParams.push(taskId);
+          await query(`
+            UPDATE task_extensions 
+            SET ${extensionUpdateFields.join(', ')}, updated_at = CURRENT_TIMESTAMP
+            WHERE task_id = $${extensionParamCount}
+          `, extensionParams);
+        }
+      } else {
+        // Create new extensions
+        await query(`
+          INSERT INTO task_extensions (
+            task_id, number_phone, sales_name, name_pt, iup, latitude, longitude, 
+            photo_link, count_photo, voice_link, count_voice, voice_transcript, is_completed
+          )
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+        `, [
+          taskId, number_phone, sales_name, name_pt, iup, 
+          validateCoordinate(latitude, 'latitude'), validateCoordinate(longitude, 'longitude'), photo_link, 
+          count_photo || 0, voice_link, count_voice || 0, voice_transcript, 
+          is_completed || false
+        ]);
+      }
+    }
 
     res.json({
       success: true,
@@ -542,6 +708,10 @@ const deleteTask = async (req, res) => {
       });
     }
 
+    // Delete task extensions first (due to foreign key constraint)
+    await query('DELETE FROM task_extensions WHERE task_id = $1', [taskId]);
+    
+    // Then delete the task
     await query('DELETE FROM tasks WHERE id = $1', [taskId]);
 
     res.json({
@@ -1387,6 +1557,193 @@ const deleteTaskStatus = async (req, res) => {
   }
 };
 
+// Get task extensions
+const getTaskExtensions = async (req, res) => {
+  try {
+    const taskId = req.params.id;
+    const userId = req.user.id;
+
+    // Check if user has access to this task
+    const accessCheck = await query(`
+      SELECT t.id FROM tasks t
+      JOIN projects p ON t.project_id = p.id
+      LEFT JOIN task_members tm ON t.id = tm.task_id
+      LEFT JOIN project_collaborators pc ON p.id = pc.project_id
+      WHERE t.id = $1 AND (tm.user_id = $2 OR pc.user_id = $2 OR p.created_by = $2)
+      LIMIT 1
+    `, [taskId, userId]);
+
+    if (accessCheck.rows.length === 0) {
+      return res.status(403).json({
+        success: false,
+        message: 'Akses ditolak ke task ini'
+      });
+    }
+
+    const result = await query(`
+      SELECT 
+        number_phone, sales_name, name_pt, iup, latitude, longitude, 
+        photo_link, count_photo, voice_link, count_voice, voice_transcript, is_completed,
+        created_at, updated_at
+      FROM task_extensions
+      WHERE task_id = $1
+    `, [taskId]);
+
+    res.json({
+      success: true,
+      data: result.rows[0] || null
+    });
+  } catch (error) {
+    console.error('Get task extensions error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Gagal mengambil data extensions task'
+    });
+  }
+};
+
+// Update task extensions only
+const updateTaskExtensions = async (req, res) => {
+  try {
+    const taskId = req.params.id;
+    const userId = req.user.id;
+    const {
+      number_phone, sales_name, name_pt, iup, latitude, longitude, 
+      photo_link, count_photo, voice_link, count_voice, voice_transcript, is_completed
+    } = req.body;
+
+    // Check if user has access to this task
+    const accessCheck = await query(`
+      SELECT t.id FROM tasks t
+      JOIN projects p ON t.project_id = p.id
+      LEFT JOIN task_members tm ON t.id = tm.task_id
+      LEFT JOIN project_collaborators pc ON p.id = pc.project_id
+      WHERE t.id = $1 AND (tm.user_id = $2 OR pc.user_id = $2 OR p.created_by = $2)
+      LIMIT 1
+    `, [taskId, userId]);
+
+    if (accessCheck.rows.length === 0) {
+      return res.status(403).json({
+        success: false,
+        message: 'Akses ditolak ke task ini'
+      });
+    }
+
+    // Check if task extensions already exist
+    const existingExtensions = await query(
+      'SELECT id FROM task_extensions WHERE task_id = $1',
+      [taskId]
+    );
+
+    if (existingExtensions.rows.length > 0) {
+      // Update existing extensions
+      const updateFields = [];
+      const params = [];
+      let paramCount = 1;
+
+      if (number_phone !== undefined) {
+        updateFields.push(`number_phone = $${paramCount}`);
+        params.push(number_phone);
+        paramCount++;
+      }
+      if (sales_name !== undefined) {
+        updateFields.push(`sales_name = $${paramCount}`);
+        params.push(sales_name);
+        paramCount++;
+      }
+      if (name_pt !== undefined) {
+        updateFields.push(`name_pt = $${paramCount}`);
+        params.push(name_pt);
+        paramCount++;
+      }
+      if (iup !== undefined) {
+        updateFields.push(`iup = $${paramCount}`);
+        params.push(iup);
+        paramCount++;
+      }
+      if (latitude !== undefined) {
+        updateFields.push(`latitude = $${paramCount}`);
+        params.push(validateCoordinate(latitude, 'latitude'));
+        paramCount++;
+      }
+      if (longitude !== undefined) {
+        updateFields.push(`longitude = $${paramCount}`);
+        params.push(validateCoordinate(longitude, 'longitude'));
+        paramCount++;
+      }
+      if (photo_link !== undefined) {
+        updateFields.push(`photo_link = $${paramCount}`);
+        params.push(photo_link);
+        paramCount++;
+      }
+      if (count_photo !== undefined) {
+        updateFields.push(`count_photo = $${paramCount}`);
+        params.push(count_photo);
+        paramCount++;
+      }
+      if (voice_link !== undefined) {
+        updateFields.push(`voice_link = $${paramCount}`);
+        params.push(voice_link);
+        paramCount++;
+      }
+      if (count_voice !== undefined) {
+        updateFields.push(`count_voice = $${paramCount}`);
+        params.push(count_voice);
+        paramCount++;
+      }
+      if (voice_transcript !== undefined) {
+        updateFields.push(`voice_transcript = $${paramCount}`);
+        params.push(voice_transcript);
+        paramCount++;
+      }
+      if (is_completed !== undefined) {
+        updateFields.push(`is_completed = $${paramCount}`);
+        params.push(is_completed);
+        paramCount++;
+      }
+
+      if (updateFields.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Tidak ada field yang diupdate'
+        });
+      }
+
+      params.push(taskId);
+      await query(`
+        UPDATE task_extensions 
+        SET ${updateFields.join(', ')}, updated_at = CURRENT_TIMESTAMP
+        WHERE task_id = $${paramCount}
+      `, params);
+    } else {
+      // Create new extensions
+      await query(`
+        INSERT INTO task_extensions (
+          task_id, number_phone, sales_name, name_pt, iup, latitude, longitude, 
+          photo_link, count_photo, voice_link, count_voice, voice_transcript, is_completed
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+      `, [
+        taskId, number_phone, sales_name, name_pt, iup, 
+        validateCoordinate(latitude, 'latitude'), validateCoordinate(longitude, 'longitude'), photo_link, 
+        count_photo || 0, voice_link, count_voice || 0, voice_transcript, 
+        is_completed || false
+      ]);
+    }
+
+    res.json({
+      success: true,
+      message: 'Task extensions berhasil diupdate'
+    });
+  } catch (error) {
+    console.error('Update task extensions error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Gagal mengupdate task extensions'
+    });
+  }
+};
+
 module.exports = {
   getProjectTasks,
   createTask,
@@ -1408,5 +1765,7 @@ module.exports = {
   getTaskStatuses,
   createTaskStatus,
   updateTaskStatus,
-  deleteTaskStatus
+  deleteTaskStatus,
+  getTaskExtensions,
+  updateTaskExtensions
 };

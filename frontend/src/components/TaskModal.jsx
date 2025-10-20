@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { X, CheckSquare, Calendar, User, AlertCircle } from 'lucide-react'
+import { X, CheckSquare, Calendar, User, AlertCircle, Phone, Building, MapPin, Camera, Mic, FileText, CheckCircle, ChevronDown, ChevronRight } from 'lucide-react'
 import Button from './Button'
 import Input from './Input'
 import LocationInput from './LocationInput'
@@ -18,13 +18,27 @@ export default function TaskModal({ isOpen, onClose, task = null, projectId = nu
     location_name: '',
     location_latitude: '',
     location_longitude: '',
-    location_address: ''
+    location_address: '',
+    // Task extensions fields
+    number_phone: '',
+    sales_name: '',
+    name_pt: '',
+    iup: '',
+    latitude: '',
+    longitude: '',
+    photo_link: '',
+    count_photo: 0,
+    voice_link: '',
+    count_voice: 0,
+    voice_transcript: '',
+    is_completed: false
   })
   const [loading, setLoading] = useState(false)
   const [projects, setProjects] = useState([])
   const [users, setUsers] = useState([])
   const [statuses, setStatuses] = useState([])
   const [selectedProjectId, setSelectedProjectId] = useState(projectId)
+  const [showExtensions, setShowExtensions] = useState(false)
 
   useEffect(() => {
     if (isOpen) {
@@ -326,6 +340,197 @@ export default function TaskModal({ isOpen, onClose, task = null, projectId = nu
                 ))}
               </div>
             </div>
+          </div>
+
+          {/* Extensions Section */}
+          <div className="border-t pt-6 mt-6">
+            <button
+              type="button"
+              onClick={() => setShowExtensions(!showExtensions)}
+              className="flex items-center justify-between w-full text-left"
+            >
+              <h3 className="text-lg font-medium text-gray-900">
+                Task Extensions (Opsional)
+              </h3>
+              {showExtensions ? (
+                <ChevronDown className="h-5 w-5 text-gray-500" />
+              ) : (
+                <ChevronRight className="h-5 w-5 text-gray-500" />
+              )}
+            </button>
+
+            {showExtensions && (
+              <div className="mt-4 space-y-4">
+                {/* Contact Information */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <Phone className="h-4 w-4 inline mr-1" />
+                      Nomor Telepon
+                    </label>
+                    <Input
+                      type="text"
+                      value={formData.number_phone}
+                      onChange={(e) => setFormData(prev => ({ ...prev, number_phone: e.target.value }))}
+                      placeholder="+6281234567890"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <User className="h-4 w-4 inline mr-1" />
+                      Nama Sales
+                    </label>
+                    <Input
+                      type="text"
+                      value={formData.sales_name}
+                      onChange={(e) => setFormData(prev => ({ ...prev, sales_name: e.target.value }))}
+                      placeholder="John Doe"
+                    />
+                  </div>
+                </div>
+
+                {/* Company Information */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <Building className="h-4 w-4 inline mr-1" />
+                      Nama PT/Perusahaan
+                    </label>
+                    <Input
+                      type="text"
+                      value={formData.name_pt}
+                      onChange={(e) => setFormData(prev => ({ ...prev, name_pt: e.target.value }))}
+                      placeholder="PT. Contoh Perusahaan"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      IUP
+                    </label>
+                    <Input
+                      type="text"
+                      value={formData.iup}
+                      onChange={(e) => setFormData(prev => ({ ...prev, iup: e.target.value }))}
+                      placeholder="IUP-001"
+                    />
+                  </div>
+                </div>
+
+                {/* Location Information */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <MapPin className="h-4 w-4 inline mr-1" />
+                      Latitude
+                    </label>
+                    <Input
+                      type="number"
+                      step="any"
+                      value={formData.latitude}
+                      onChange={(e) => setFormData(prev => ({ ...prev, latitude: e.target.value }))}
+                      placeholder="-6.200000"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Longitude
+                    </label>
+                    <Input
+                      type="number"
+                      step="any"
+                      value={formData.longitude}
+                      onChange={(e) => setFormData(prev => ({ ...prev, longitude: e.target.value }))}
+                      placeholder="106.816666"
+                    />
+                  </div>
+                </div>
+
+                {/* Media Information */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <Camera className="h-4 w-4 inline mr-1" />
+                      Link Foto
+                    </label>
+                    <Input
+                      type="url"
+                      value={formData.photo_link}
+                      onChange={(e) => setFormData(prev => ({ ...prev, photo_link: e.target.value }))}
+                      placeholder="https://example.com/photo.jpg"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Jumlah Foto
+                    </label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={formData.count_photo}
+                      onChange={(e) => setFormData(prev => ({ ...prev, count_photo: parseInt(e.target.value) || 0 }))}
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <Mic className="h-4 w-4 inline mr-1" />
+                      Link Voice/Audio
+                    </label>
+                    <Input
+                      type="url"
+                      value={formData.voice_link}
+                      onChange={(e) => setFormData(prev => ({ ...prev, voice_link: e.target.value }))}
+                      placeholder="https://example.com/voice.mp3"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Jumlah File Voice
+                    </label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={formData.count_voice}
+                      onChange={(e) => setFormData(prev => ({ ...prev, count_voice: parseInt(e.target.value) || 0 }))}
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+
+                {/* Voice Transcript */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <FileText className="h-4 w-4 inline mr-1" />
+                    Transkrip Suara
+                  </label>
+                  <textarea
+                    value={formData.voice_transcript}
+                    onChange={(e) => setFormData(prev => ({ ...prev, voice_transcript: e.target.value }))}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Masukkan transkrip percakapan atau catatan penting..."
+                  />
+                </div>
+
+                {/* Completion Status */}
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="is_completed"
+                    checked={formData.is_completed}
+                    onChange={(e) => setFormData(prev => ({ ...prev, is_completed: e.target.checked }))}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <label htmlFor="is_completed" className="ml-2 block text-sm text-gray-700 flex items-center">
+                    <CheckCircle className="h-4 w-4 mr-1" />
+                    Tandai sebagai selesai
+                  </label>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center justify-between mt-6">

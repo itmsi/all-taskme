@@ -28,6 +28,8 @@ import LoadingSpinner from '../components/LoadingSpinner'
 import ImagePreviewModal from '../components/ImagePreviewModal'
 import RichTextEditor from '../components/RichTextEditor'
 import LocationInput from '../components/LocationInput'
+import TaskExtensionsDisplay from '../components/TaskExtensionsDisplay'
+import TaskExtensionsModal from '../components/TaskExtensionsModal'
 import { tasksAPI, usersAPI } from '../services/api'
 import { useSocket } from '../contexts/SocketContext'
 
@@ -714,17 +716,20 @@ export default function TaskDetailPage() {
   const [availableUsers, setAvailableUsers] = useState([])
   const [messages, setMessages] = useState([])
   const [currentUser, setCurrentUser] = useState(null)
+  const [taskExtensions, setTaskExtensions] = useState(null)
+  const [extensionsModalOpen, setExtensionsModalOpen] = useState(false)
 
   useEffect(() => {
     const fetchTaskData = async () => {
       try {
         setLoading(true)
         
-        const [taskResponse, usersResponse, commentsResponse, attachmentsResponse] = await Promise.all([
+        const [taskResponse, usersResponse, commentsResponse, attachmentsResponse, extensionsResponse] = await Promise.all([
           tasksAPI.getTaskById(id),
           usersAPI.getUsers(),
           tasksAPI.getTaskComments(id),
-          tasksAPI.getTaskAttachments(id)
+          tasksAPI.getTaskAttachments(id),
+          tasksAPI.getTaskExtensions(id).catch(() => ({ data: { data: null } })) // Handle case where extensions don't exist
         ])
         
         const taskData = taskResponse.data.data
@@ -744,6 +749,7 @@ export default function TaskDetailPage() {
         setAvailableUsers(usersResponse.data.users || [])
         setMessages(commentsResponse.data.data.comments || [])
         setAttachments(attachmentsResponse.data.data || [])
+        setTaskExtensions(extensionsResponse.data.data)
         
         // Get current user from localStorage
         const token = localStorage.getItem('token')
@@ -789,6 +795,17 @@ export default function TaskDetailPage() {
       }
     }
   }, [socket, isConnected, id])
+
+  const handleSaveExtensions = async (extensionsData) => {
+    try {
+      const response = await tasksAPI.updateTaskExtensions(id, extensionsData)
+      setTaskExtensions(response.data.data || extensionsData)
+      setExtensionsModalOpen(false)
+    } catch (error) {
+      console.error('Error saving task extensions:', error)
+      throw error
+    }
+  }
 
   const handleSave = async () => {
     try {
@@ -1171,8 +1188,28 @@ export default function TaskDetailPage() {
               />
             </div>
           </div>
+
+          {/* Task Extensions */}
+          <div className="card">
+            <div className="card-body">
+              <TaskExtensionsDisplay
+                extensions={taskExtensions}
+                onEdit={() => setExtensionsModalOpen(true)}
+                canEdit={true}
+              />
+            </div>
+          </div>
         </div>
       </div>
+
+      {/* Task Extensions Modal */}
+      <TaskExtensionsModal
+        isOpen={extensionsModalOpen}
+        onClose={() => setExtensionsModalOpen(false)}
+        taskId={id}
+        initialData={taskExtensions}
+        onSave={handleSaveExtensions}
+      />
     </div>
   )
 }

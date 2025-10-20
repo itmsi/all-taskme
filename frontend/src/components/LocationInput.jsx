@@ -10,6 +10,7 @@ export default function LocationInput({
   className = '' 
 }) {
   const [showManualInput, setShowManualInput] = useState(false)
+  const [localError, setLocalError] = useState(null)
   const [manualLocation, setManualLocation] = useState({
     name: value?.name || '',
     latitude: value?.latitude || '',
@@ -17,13 +18,23 @@ export default function LocationInput({
     address: value?.address || ''
   })
 
-  const { location, loading, error, getCurrentLocation, clearLocation } = useLocation()
+  const { location, loading, error, getCurrentLocationWithRetry, checkLocationSupport, clearLocation } = useLocation()
 
   const handleGetCurrentLocation = async () => {
     try {
-      const currentLocation = await getCurrentLocation()
+      // Check if location is supported first
+      const support = checkLocationSupport()
+      if (!support.supported) {
+        setLocalError(support.message)
+        return
+      }
+
+      setLocalError(null) // Clear previous errors
+      const currentLocation = await getCurrentLocationWithRetry()
       onChange(currentLocation)
+      setLocalError(null) // Clear error on success
     } catch (error) {
+      // Error is already handled by useLocation hook
       console.error('Error getting location:', error)
     }
   }
@@ -38,6 +49,11 @@ export default function LocationInput({
     onChange(null)
     setManualLocation({ name: '', latitude: '', longitude: '', address: '' })
     clearLocation()
+  }
+
+  const handleClearError = () => {
+    setLocalError(null)
+    clearLocation() // This will also clear error from useLocation hook
   }
 
   const toggleManualInput = () => {
@@ -96,9 +112,24 @@ export default function LocationInput({
       </div>
 
       {/* Error message */}
-      {error && (
-        <div className="text-sm text-red-600 bg-red-50 p-2 rounded">
-          {error}
+      {(error || localError) && (
+        <div className="text-sm text-red-600 bg-red-50 p-3 rounded border border-red-200">
+          <div className="flex justify-between items-start">
+            <div className="flex-1">
+              <div className="font-medium mb-1">Location Error:</div>
+              <div className="text-sm">{error || localError}</div>
+              <div className="text-xs text-red-500 mt-2">
+                💡 <strong>Tip:</strong> You can use manual input below to enter location details manually.
+              </div>
+            </div>
+            <button
+              onClick={handleClearError}
+              className="ml-2 text-red-400 hover:text-red-600"
+              title="Clear error"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       )}
 

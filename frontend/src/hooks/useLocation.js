@@ -5,7 +5,7 @@ export const useLocation = () => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
-  const getCurrentLocation = useCallback(() => {
+  const getCurrentLocation = useCallback((retryWithHighAccuracy = false) => {
     return new Promise((resolve, reject) => {
       if (!navigator.geolocation) {
         reject(new Error('Geolocation is not supported by this browser'))
@@ -14,6 +14,12 @@ export const useLocation = () => {
 
       setLoading(true)
       setError(null)
+
+      const options = {
+        enableHighAccuracy: retryWithHighAccuracy,
+        timeout: retryWithHighAccuracy ? 20000 : 15000,
+        maximumAge: retryWithHighAccuracy ? 60000 : 300000
+      }
 
       navigator.geolocation.getCurrentPosition(
         async (position) => {
@@ -41,26 +47,37 @@ export const useLocation = () => {
         },
         (error) => {
           let errorMessage = 'Failed to get location'
+          let shouldRetry = false
+          
           switch (error.code) {
             case error.PERMISSION_DENIED:
-              errorMessage = 'Location access denied by user'
+              errorMessage = 'Location access denied. Please enable location permission in your browser settings.'
               break
             case error.POSITION_UNAVAILABLE:
-              errorMessage = 'Location information unavailable'
+              errorMessage = 'Location information unavailable. This might be due to GPS being disabled or poor signal. You can try manual input instead.'
+              shouldRetry = true
               break
             case error.TIMEOUT:
-              errorMessage = 'Location request timed out'
+              errorMessage = 'Location request timed out. Please try again or use manual input.'
+              shouldRetry = true
               break
+            default:
+              errorMessage = 'Unable to get your location. Please check your device settings or use manual input.'
+              shouldRetry = true
           }
+          
           setError(errorMessage)
           setLoading(false)
-          reject(new Error(errorMessage))
+          
+          // If it's a retryable error and we haven't tried high accuracy yet, don't reject immediately
+          if (shouldRetry && !retryWithHighAccuracy) {
+            // This will be handled by getCurrentLocationWithRetry
+            reject(new Error(errorMessage))
+          } else {
+            reject(new Error(errorMessage))
+          }
         },
-        {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 60000
-        }
+        options
       )
     })
   }, [])
@@ -103,11 +120,51 @@ export const useLocation = () => {
     setError(null)
   }, [])
 
+  const getCurrentLocationWithRetry = useCallback(async () => {
+    try {
+      // Try with low accuracy first (faster)
+      return await getCurrentLocation(false)
+    } catch (error) {
+      // If failed, try with high accuracy
+      try {
+        console.log('Retrying with high accuracy...')
+        return await getCurrentLocation(true)
+      } catch (retryError) {
+        console.log('Both attempts failed, throwing error')
+        throw retryError
+      }
+    }
+  }, [getCurrentLocation])
+
+  const checkLocationSupport = useCallback(() => {
+    if (!navigator.geolocation) {
+      return {
+        supported: false,
+        message: 'Geolocation is not supported by this browser'
+      }
+    }
+    
+    // Check if we're in a secure context (HTTPS or localhost)
+    if (!window.isSecureContext) {
+      return {
+        supported: false,
+        message: 'Location access requires HTTPS or localhost'
+      }
+    }
+    
+    return {
+      supported: true,
+      message: 'Location access is available'
+    }
+  }, [])
+
   return {
     location,
     loading,
     error,
     getCurrentLocation,
+    getCurrentLocationWithRetry,
+    checkLocationSupport,
     clearLocation
   }
 }
