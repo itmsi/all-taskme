@@ -96,5 +96,5 @@ networks:
       com.docker.network.bridge.host_binding_ipv4: "0.0.0.0"
     ipam:
       config:
-        - subnet: 172.20.0.0/16
-          gateway: 172.20.0.1
+        - subnet: 172.25.0.0/16
+          gateway: 172.25.0.1
