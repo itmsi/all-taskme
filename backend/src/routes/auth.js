@@ -11,6 +11,7 @@ const authController = require('../controllers/authController');
  *   post:
  *     tags: [Authentication]
  *     summary: Register new user
+ *     security: []
  *     requestBody:
  *       required: true
  *       content:
@@ -53,6 +54,7 @@ router.post('/register', validate(schemas.register), authController.register);
  *   post:
  *     tags: [Authentication]
  *     summary: Login user
+ *     security: []
  *     requestBody:
  *       required: true
  *       content:
