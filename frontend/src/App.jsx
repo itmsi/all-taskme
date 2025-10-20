@@ -8,6 +8,8 @@ import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import DashboardPage from './pages/DashboardPage'
 import TeamsPage from './pages/TeamsPage'
+import AddTeamPage from './pages/AddTeamPage'
+import EditTeamPage from './pages/EditTeamPage'
 import ProjectsPage from './pages/ProjectsPage'
 import ProjectDetailPage from './pages/ProjectDetailPage'
 import TasksPage from './pages/TasksPage'
@@ -64,6 +66,8 @@ function AppRoutes() {
       <Route path="/" element={<AppLayout />}>
         <Route index element={<DashboardPage />} />
         <Route path="teams" element={<TeamsPage />} />
+        <Route path="teams/add" element={<AddTeamPage />} />
+        <Route path="teams/:id/edit" element={<EditTeamPage />} />
         <Route path="projects" element={<ProjectsPage />} />
         <Route path="projects/:id" element={<ProjectDetailPage />} />
         <Route path="tasks" element={<TasksPage />} />

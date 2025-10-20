@@ -12,9 +12,13 @@ const getUserTeams = async (req, res) => {
       query_sql = `
         SELECT t.id, t.name, t.description, t.leader_id, t.created_at, t.updated_at,
                'admin' as user_role, t.created_at as joined_at,
-               u.username as leader_username, u.full_name as leader_name
+               u.username as leader_username, u.full_name as leader_name,
+               COUNT(tm.user_id) as member_count
         FROM teams t
         LEFT JOIN users u ON t.leader_id = u.id
+        LEFT JOIN team_members tm ON t.id = tm.team_id
+        GROUP BY t.id, t.name, t.description, t.leader_id, t.created_at, t.updated_at,
+                 u.username, u.full_name
         ORDER BY t.created_at DESC
       `;
       params = [];
@@ -23,11 +27,15 @@ const getUserTeams = async (req, res) => {
       query_sql = `
         SELECT t.id, t.name, t.description, t.leader_id, t.created_at, t.updated_at,
                tm.role as user_role, tm.joined_at,
-               u.username as leader_username, u.full_name as leader_name
+               u.username as leader_username, u.full_name as leader_name,
+               COUNT(tm2.user_id) as member_count
         FROM teams t
         JOIN team_members tm ON t.id = tm.team_id
         LEFT JOIN users u ON t.leader_id = u.id
+        LEFT JOIN team_members tm2 ON t.id = tm2.team_id
         WHERE tm.user_id = $1
+        GROUP BY t.id, t.name, t.description, t.leader_id, t.created_at, t.updated_at,
+                 tm.role, tm.joined_at, u.username, u.full_name
         ORDER BY t.created_at DESC
       `;
       params = [userId];
@@ -51,8 +59,24 @@ const getUserTeams = async (req, res) => {
 
 const createTeam = async (req, res) => {
   try {
-    const { name, description } = req.body;
+    const { name, description, leader_id } = req.body;
     const userId = req.user.id;
+
+    // If leader_id is provided, validate it
+    if (leader_id && leader_id !== userId) {
+      const userCheck = await query(
+        'SELECT id, full_name FROM users WHERE id = $1 AND is_active = true',
+        [leader_id]
+      );
+
+      if (userCheck.rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          error: 'User tidak ditemukan',
+          message: 'User yang akan dijadikan leader tidak ditemukan atau tidak aktif'
+        });
+      }
+    }
 
     const result = await transaction(async (client) => {
       // Create team
@@ -60,17 +84,26 @@ const createTeam = async (req, res) => {
         `INSERT INTO teams (name, description, leader_id) 
          VALUES ($1, $2, $3) 
          RETURNING id, name, description, leader_id, created_at, updated_at`,
-        [name, description, userId]
+        [name, description, leader_id || userId]
       );
 
       const team = teamResult.rows[0];
 
-      // Add creator as team leader
+      // Add creator as team member
       await client.query(
         `INSERT INTO team_members (team_id, user_id, role) 
          VALUES ($1, $2, $3)`,
-        [team.id, userId, 'leader']
+        [team.id, userId, leader_id && leader_id !== userId ? 'member' : 'leader']
       );
+
+      // If leader_id is provided and different from creator, add them as leader
+      if (leader_id && leader_id !== userId) {
+        await client.query(
+          `INSERT INTO team_members (team_id, user_id, role) 
+           VALUES ($1, $2, $3)`,
+          [team.id, leader_id, 'leader']
+        );
+      }
 
       return team;
     });
@@ -347,18 +380,20 @@ const addTeamMember = async (req, res) => {
       });
     }
 
-    // Check if user is already a member
-    const existingMember = await query(
-      'SELECT 1 FROM team_members WHERE team_id = $1 AND user_id = $2',
-      [id, user_id]
-    );
+    // Check if trying to add leader when leader already exists
+    if (role === 'leader') {
+      const existingLeader = await query(
+        'SELECT 1 FROM team_members WHERE team_id = $1 AND role = $2',
+        [id, 'leader']
+      );
 
-    if (existingMember.rows.length > 0) {
-      return res.status(409).json({
-        success: false,
-        error: 'User sudah menjadi anggota',
-        message: 'User sudah menjadi anggota tim ini'
-      });
+      if (existingLeader.rows.length > 0) {
+        return res.status(400).json({
+          success: false,
+          error: 'Tim sudah memiliki leader',
+          message: 'Tim hanya boleh memiliki satu leader'
+        });
+      }
     }
 
     const result = await query(
@@ -470,6 +505,22 @@ const updateMemberRole = async (req, res) => {
       });
     }
 
+    // Check if trying to set role to leader when leader already exists
+    if (role === 'leader') {
+      const existingLeader = await query(
+        'SELECT user_id FROM team_members WHERE team_id = $1 AND role = $2',
+        [id, 'leader']
+      );
+
+      if (existingLeader.rows.length > 0 && existingLeader.rows[0].user_id !== userId) {
+        return res.status(400).json({
+          success: false,
+          error: 'Tim sudah memiliki leader',
+          message: 'Tim hanya boleh memiliki satu leader'
+        });
+      }
+    }
+
     const result = await query(
       `UPDATE team_members 
        SET role = $1 
@@ -477,14 +528,6 @@ const updateMemberRole = async (req, res) => {
        RETURNING id, role, joined_at`,
       [role, id, userId]
     );
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        error: 'Anggota tidak ditemukan',
-        message: 'User bukan anggota tim ini'
-      });
-    }
 
     res.json({
       success: true,
@@ -501,11 +544,107 @@ const updateMemberRole = async (req, res) => {
   }
 };
 
+const updateTeamLeader = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { leader_id } = req.body;
+    const currentUserId = req.user.id;
+
+    // Check if current user is leader of the team
+    const leaderCheck = await query(
+      `SELECT 1 FROM teams t
+       JOIN team_members tm ON t.id = tm.team_id
+       WHERE t.id = $1 AND tm.user_id = $2 AND tm.role = 'leader'`,
+      [id, currentUserId]
+    );
+
+    if (leaderCheck.rows.length === 0) {
+      return res.status(403).json({
+        success: false,
+        error: 'Akses ditolak',
+        message: 'Hanya leader tim yang bisa mengubah leader tim'
+      });
+    }
+
+    // Check if new leader exists and is active
+    const userCheck = await query(
+      'SELECT id, full_name FROM users WHERE id = $1 AND is_active = true',
+      [leader_id]
+    );
+
+    if (userCheck.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'User tidak ditemukan',
+        message: 'User yang akan dijadikan leader tidak ditemukan atau tidak aktif'
+      });
+    }
+
+    // Check if new leader is already a member of the team
+    const memberCheck = await query(
+      'SELECT role FROM team_members WHERE team_id = $1 AND user_id = $2',
+      [id, leader_id]
+    );
+
+    if (memberCheck.rows.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'User bukan anggota tim',
+        message: 'User harus menjadi anggota tim terlebih dahulu sebelum dijadikan leader'
+      });
+    }
+
+    // Check if new leader is already the leader
+    if (memberCheck.rows[0].role === 'leader') {
+      return res.status(400).json({
+        success: false,
+        error: 'User sudah menjadi leader',
+        message: 'User sudah menjadi leader tim ini'
+      });
+    }
+
+    const result = await transaction(async (client) => {
+      // Update team leader_id
+      await client.query(
+        'UPDATE teams SET leader_id = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
+        [leader_id, id]
+      );
+
+      // Update old leader role to member
+      await client.query(
+        'UPDATE team_members SET role = $1 WHERE team_id = $2 AND user_id = $3',
+        ['member', id, currentUserId]
+      );
+
+      // Update new leader role
+      await client.query(
+        'UPDATE team_members SET role = $1 WHERE team_id = $2 AND user_id = $3',
+        ['leader', id, leader_id]
+      );
+
+      return { success: true };
+    });
+
+    res.json({
+      success: true,
+      message: 'Leader tim berhasil diupdate'
+    });
+  } catch (error) {
+    console.error('Update team leader error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Gagal mengupdate leader tim',
+      message: 'Terjadi kesalahan saat mengupdate leader tim'
+    });
+  }
+};
+
 module.exports = {
   getUserTeams,
   createTeam,
   getTeamById,
   updateTeam,
+  updateTeamLeader,
   deleteTeam,
   getTeamMembers,
   addTeamMember,

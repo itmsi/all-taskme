@@ -72,6 +72,7 @@ export const usersAPI = {
   getProfile: () => api.get('/users/profile'),
   updateProfile: (profileData) => api.put('/users/profile', profileData),
   getUsers: (params) => api.get('/users', { params }),
+  getAllUsers: () => api.get('/users/all'),
   getUserById: (id) => api.get(`/users/${id}`),
 }
 
@@ -81,6 +82,7 @@ export const teamsAPI = {
   createTeam: (teamData) => api.post('/teams', teamData),
   getTeamById: (id) => api.get(`/teams/${id}`),
   updateTeam: (id, teamData) => api.put(`/teams/${id}`, teamData),
+  updateTeamLeader: (id, leaderData) => api.put(`/teams/${id}/leader`, leaderData),
   deleteTeam: (id) => api.delete(`/teams/${id}`),
   getTeamMembers: (id) => api.get(`/teams/${id}/members`),
   addTeamMember: (id, memberData) => api.post(`/teams/${id}/members`, memberData),
@@ -105,6 +107,7 @@ export const projectsAPI = {
 export const tasksAPI = {
   getProjectTasks: (projectId) => api.get(`/tasks/project/${projectId}`),
   createTask: (projectId, taskData) => api.post(`/tasks/project/${projectId}`, taskData),
+  createTaskWithExtensions: (projectId, taskData) => api.post(`/tasks/project/${projectId}/with-extensions`, taskData),
   getTaskById: (id) => api.get(`/tasks/${id}`),
   updateTask: (id, taskData) => api.put(`/tasks/${id}`, taskData),
   deleteTask: (id) => api.delete(`/tasks/${id}`),

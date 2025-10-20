@@ -197,9 +197,45 @@ const getUserById = async (req, res) => {
   }
 };
 
+const getAllUsers = async (req, res) => {
+  try {
+    const userRole = req.user.role;
+
+    let whereClause = 'WHERE is_active = true';
+    let values = [];
+
+    // Admin can see all users, regular users can only see active users
+    if (userRole !== 'admin') {
+      whereClause += ' AND role != \'admin\'';
+    }
+
+    const usersQuery = `
+      SELECT id, username, email, full_name, avatar_url, role
+      FROM users 
+      ${whereClause}
+      ORDER BY full_name ASC
+    `;
+
+    const result = await query(usersQuery, values);
+
+    res.json({
+      success: true,
+      users: result.rows
+    });
+  } catch (error) {
+    console.error('Get all users error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Gagal mengambil daftar user',
+      message: 'Terjadi kesalahan saat mengambil daftar user'
+    });
+  }
+};
+
 module.exports = {
   getProfile,
   updateProfile,
   getUsers,
+  getAllUsers,
   getUserById
 };

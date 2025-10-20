@@ -47,12 +47,17 @@ const schemas = {
   // Team schemas
   createTeam: Joi.object({
     name: Joi.string().min(2).max(100).required(),
-    description: Joi.string().max(500)
+    description: Joi.string().max(500),
+    leader_id: Joi.string().uuid()
   }),
 
   updateTeam: Joi.object({
     name: Joi.string().min(2).max(100),
     description: Joi.string().max(500)
+  }),
+
+  updateTeamLeader: Joi.object({
+    leader_id: Joi.string().uuid().required()
   }),
 
   addTeamMember: Joi.object({
@@ -79,6 +84,33 @@ const schemas = {
 
   // Task schemas
   createTask: Joi.object({
+    title: Joi.string().min(2).max(200).required(),
+    description: Joi.string().max(2000),
+    priority: Joi.string().valid('low', 'medium', 'high', 'urgent').default('medium'),
+    due_date: Joi.date().iso(),
+    estimated_hours: Joi.number().integer().min(0),
+    status_id: Joi.string().uuid(),
+    assigned_to: Joi.array().items(Joi.string().uuid()),
+    location_name: Joi.string().max(255).allow('', null),
+    location_latitude: Joi.number().allow('', null),
+    location_longitude: Joi.number().allow('', null),
+    location_address: Joi.string().max(1000).allow('', null),
+    // Task extensions fields
+    number_phone: Joi.string().max(20).allow('', null),
+    sales_name: Joi.string().max(100).allow('', null),
+    name_pt: Joi.string().max(200).allow('', null),
+    iup: Joi.string().max(100).allow('', null),
+    latitude: Joi.number().allow('', null),
+    longitude: Joi.number().allow('', null),
+    photo_link: Joi.string().max(500).allow('', null),
+    count_photo: Joi.number().integer().min(0).allow('', null),
+    voice_link: Joi.string().max(500).allow('', null),
+    count_voice: Joi.number().integer().min(0).allow('', null),
+    voice_transcript: Joi.string().max(2000).allow('', null),
+    is_completed: Joi.boolean().allow('', null)
+  }),
+
+  createTaskWithExtensions: Joi.object({
     title: Joi.string().min(2).max(200).required(),
     description: Joi.string().max(2000),
     priority: Joi.string().valid('low', 'medium', 'high', 'urgent').default('medium'),

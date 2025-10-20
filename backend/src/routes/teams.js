@@ -125,6 +125,49 @@ router.put('/:id', authenticateToken, validate(schemas.updateTeam), teamControll
 
 /**
  * @swagger
+ * /api/teams/{id}/leader:
+ *   put:
+ *     tags: [Teams]
+ *     summary: Update team leader
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Team ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - leader_id
+ *             properties:
+ *               leader_id:
+ *                 type: string
+ *                 format: uuid
+ *                 example: 123e4567-e89b-12d3-a456-426614174000
+ *     responses:
+ *       200:
+ *         description: Team leader updated successfully
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
+router.put('/:id/leader', authenticateToken, validate(schemas.updateTeamLeader), teamController.updateTeamLeader);
+
+/**
+ * @swagger
  * /api/teams/{id}:
  *   delete:
  *     tags: [Teams]

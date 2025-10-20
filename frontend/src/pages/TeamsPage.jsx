@@ -1,44 +1,37 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Plus, Users, Crown, User, Edit, Trash2 } from 'lucide-react'
 import Button from '../components/Button'
 import LoadingSpinner from '../components/LoadingSpinner'
-import TeamModal from '../components/TeamModal'
 import { teamsAPI } from '../services/api'
 
 export default function TeamsPage() {
+  const navigate = useNavigate()
   const [teams, setTeams] = useState([])
   const [loading, setLoading] = useState(true)
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [selectedTeam, setSelectedTeam] = useState(null)
 
   useEffect(() => {
-    const fetchTeams = async () => {
-      try {
-        setLoading(true)
-        const response = await teamsAPI.getUserTeams()
-        setTeams(response.data.teams || [])
-      } catch (error) {
-        console.error('Error fetching teams:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
     fetchTeams()
   }, [])
 
   const handleCreateTeam = () => {
-    setSelectedTeam(null)
-    setIsModalOpen(true)
+    navigate('/teams/add')
   }
 
   const handleEditTeam = (team) => {
-    setSelectedTeam(team)
-    setIsModalOpen(true)
+    navigate(`/teams/${team.id}/edit`)
   }
 
-  const handleModalSuccess = () => {
-    fetchTeams()
+  const fetchTeams = async () => {
+    try {
+      setLoading(true)
+      const response = await teamsAPI.getUserTeams()
+      setTeams(response.data.teams || [])
+    } catch (error) {
+      console.error('Error fetching teams:', error)
+    } finally {
+      setLoading(false)
+    }
   }
 
   if (loading) {
@@ -73,7 +66,7 @@ export default function TeamsPage() {
           <p className="text-gray-500 mb-6">
             Buat tim pertama Anda untuk mulai berkolaborasi dengan anggota lain.
           </p>
-          <Button>
+          <Button onClick={handleCreateTeam}>
             <Plus className="h-4 w-4 mr-2" />
             Buat Tim Pertama
           </Button>
@@ -96,7 +89,7 @@ export default function TeamsPage() {
                 <div className="flex items-center justify-between text-sm text-gray-500">
                   <div className="flex items-center">
                     <User className="h-4 w-4 mr-1" />
-                    {team.memberCount || 0} anggota
+                    {team.member_count || 0} anggota
                   </div>
                   <div className="flex items-center space-x-2">
                     <span className={`badge ${
@@ -124,13 +117,6 @@ export default function TeamsPage() {
           ))}
         </div>
       )}
-
-      <TeamModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        team={selectedTeam}
-        onSuccess={handleModalSuccess}
-      />
     </div>
   )
 }

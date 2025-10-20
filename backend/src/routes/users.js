@@ -95,6 +95,22 @@ router.get('/', authenticateToken, userController.getUsers);
 
 /**
  * @swagger
+ * /api/users/all:
+ *   get:
+ *     tags: [Users]
+ *     summary: Get all users (for team assignment)
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: All users retrieved successfully
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ */
+router.get('/all', authenticateToken, userController.getAllUsers);
+
+/**
+ * @swagger
  * /api/users/{id}:
  *   get:
  *     tags: [Users]

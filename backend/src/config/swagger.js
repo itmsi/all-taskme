@@ -16,7 +16,7 @@ const options = {
       {
         url: process.env.NODE_ENV === 'production' 
           ? 'https://api.taskme.com' 
-          : `http://localhost:${process.env.PORT || 5000}`,
+          : `http://localhost:${process.env.PORT || 9561}`,
         description: process.env.NODE_ENV === 'production' ? 'Production server' : 'Development server'
       }
     ],
@@ -318,6 +318,88 @@ const options = {
               type: 'string'
             },
             created_at: {
+              type: 'string',
+              format: 'date-time'
+            }
+          }
+        },
+        TaskAttachment: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'string',
+              format: 'uuid'
+            },
+            task_id: {
+              type: 'string',
+              format: 'uuid'
+            },
+            filename: {
+              type: 'string'
+            },
+            original_name: {
+              type: 'string'
+            },
+            file_size: {
+              type: 'integer'
+            },
+            mime_type: {
+              type: 'string'
+            },
+            uploaded_at: {
+              type: 'string',
+              format: 'date-time'
+            },
+            uploaded_by: {
+              type: 'string',
+              format: 'uuid'
+            }
+          }
+        },
+        TaskExtensions: {
+          type: 'object',
+          properties: {
+            number_phone: {
+              type: 'string'
+            },
+            sales_name: {
+              type: 'string'
+            },
+            name_pt: {
+              type: 'string'
+            },
+            iup: {
+              type: 'string'
+            },
+            latitude: {
+              type: 'number'
+            },
+            longitude: {
+              type: 'number'
+            },
+            photo_link: {
+              type: 'string'
+            },
+            count_photo: {
+              type: 'integer'
+            },
+            voice_link: {
+              type: 'string'
+            },
+            count_voice: {
+              type: 'integer'
+            },
+            voice_transcript: {
+              type: 'string'
+            },
+            is_completed: {
+              type: 'boolean'
+            },
+            created_at: {
+              type: 'string',
+              format: 'date-time'
+            },
+            updated_at: {
               type: 'string',
               format: 'date-time'
             }

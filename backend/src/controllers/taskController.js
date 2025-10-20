@@ -1744,9 +1744,131 @@ const updateTaskExtensions = async (req, res) => {
   }
 };
 
+// Create a new task with extensions
+const createTaskWithExtensions = async (req, res) => {
+  try {
+    const projectId = req.params.projectId;
+    const userId = req.user.id;
+    const { 
+      title, description, status_id, priority = 'medium', due_date, estimated_hours, assigned_to, 
+      location_name, location_latitude, location_longitude, location_address,
+      // Task extensions fields
+      number_phone, sales_name, name_pt, iup, latitude, longitude, photo_link, 
+      count_photo, voice_link, count_voice, voice_transcript, is_completed 
+    } = req.body;
+
+    if (!title) {
+      return res.status(400).json({
+        success: false,
+        message: 'Judul task diperlukan'
+      });
+    }
+
+    // Check if user has permission to create tasks in this project
+    const permissionCheck = await query(`
+      SELECT p.id FROM projects p
+      LEFT JOIN project_collaborators pc ON p.id = pc.project_id
+      WHERE p.id = $1 AND (p.created_by = $2 OR pc.role IN ('owner', 'collaborator'))
+      LIMIT 1
+    `, [projectId, userId]);
+
+    if (permissionCheck.rows.length === 0) {
+      return res.status(403).json({
+        success: false,
+        message: 'Anda tidak memiliki izin untuk membuat task di project ini'
+      });
+    }
+
+    // Check if location columns exist by trying a simple query first
+    let hasLocationColumns = false;
+    try {
+      await query(`SELECT location_name FROM tasks LIMIT 1`);
+      hasLocationColumns = true;
+    } catch (error) {
+      hasLocationColumns = false;
+    }
+
+    let result;
+    if (hasLocationColumns) {
+      result = await query(`
+        INSERT INTO tasks (title, description, project_id, created_by, status_id, priority, due_date, estimated_hours, location_name, location_latitude, location_longitude, location_address)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+        RETURNING id, title, description, priority, due_date, estimated_hours, actual_hours, location_name, location_latitude, location_longitude, location_address, created_at
+      `, [title, description, projectId, userId, status_id || null, priority, due_date || null, estimated_hours || null, location_name, location_latitude || null, location_longitude || null, location_address]);
+    } else {
+      result = await query(`
+        INSERT INTO tasks (title, description, project_id, created_by, status_id, priority, due_date, estimated_hours)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        RETURNING id, title, description, priority, due_date, estimated_hours, actual_hours, created_at
+      `, [title, description, projectId, userId, status_id || null, priority, due_date || null, estimated_hours || null]);
+    }
+
+    const taskId = result.rows[0].id;
+
+    // Always create task extensions with default values if not provided
+    await query(`
+      INSERT INTO task_extensions (
+        task_id, number_phone, sales_name, name_pt, iup, latitude, longitude, 
+        photo_link, count_photo, voice_link, count_voice, voice_transcript, is_completed
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+    `, [
+      taskId, 
+      number_phone || '', 
+      sales_name || '', 
+      name_pt || '', 
+      iup || '', 
+      validateCoordinate(latitude, 'latitude') || null, 
+      validateCoordinate(longitude, 'longitude') || null, 
+      photo_link || '', 
+      count_photo || 0, 
+      voice_link || '', 
+      count_voice || 0, 
+      voice_transcript || '', 
+      is_completed || false
+    ]);
+
+    // Assign task to users if provided
+    if (assigned_to && Array.isArray(assigned_to)) {
+      for (const userIdToAssign of assigned_to) {
+        await query(`
+          INSERT INTO task_members (task_id, user_id)
+          VALUES ($1, $2)
+        `, [taskId, userIdToAssign]);
+
+        // Send notification to assigned user
+        await query(`
+          INSERT INTO notifications (user_id, title, message, type, related_id, related_type)
+          VALUES ($1, $2, $3, $4, $5, $6)
+        `, [
+          userIdToAssign,
+          'Task Ditugaskan',
+          `Anda ditugaskan ke task "${title}"`,
+          'task_assigned',
+          taskId,
+          'task'
+        ]);
+      }
+    }
+
+    res.status(201).json({
+      success: true,
+      message: 'Task dengan extensions berhasil dibuat',
+      data: result.rows[0]
+    });
+  } catch (error) {
+    console.error('Create task with extensions error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Gagal membuat task dengan extensions'
+    });
+  }
+};
+
 module.exports = {
   getProjectTasks,
   createTask,
+  createTaskWithExtensions,
   getTaskById,
   updateTask,
   updateTaskStatusKanban,

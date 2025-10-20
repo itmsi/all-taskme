@@ -138,6 +138,117 @@ router.post('/project/:projectId', authenticateToken, validate(schemas.createTas
 
 /**
  * @swagger
+ * /api/tasks/project/{projectId}/with-extensions:
+ *   post:
+ *     summary: Create a new task with extensions
+ *     tags: [Tasks]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Project ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - title
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 example: "Implement user authentication"
+ *               description:
+ *                 type: string
+ *                 example: "Add JWT-based authentication system"
+ *               status_id:
+ *                 type: string
+ *                 format: uuid
+ *               priority:
+ *                 type: string
+ *                 enum: [low, medium, high, urgent]
+ *                 default: medium
+ *               due_date:
+ *                 type: string
+ *                 format: date-time
+ *               estimated_hours:
+ *                 type: integer
+ *                 example: 8
+ *               assigned_to:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: uuid
+ *               # Task Extensions Fields
+ *               number_phone:
+ *                 type: string
+ *                 example: "+6281234567890"
+ *               sales_name:
+ *                 type: string
+ *                 example: "John Doe"
+ *               name_pt:
+ *                 type: string
+ *                 example: "PT. Contoh Perusahaan"
+ *               iup:
+ *                 type: string
+ *                 example: "IUP-001"
+ *               latitude:
+ *                 type: number
+ *                 example: -6.200000
+ *               longitude:
+ *                 type: number
+ *                 example: 106.816666
+ *               photo_link:
+ *                 type: string
+ *                 example: "https://example.com/photo.jpg"
+ *               count_photo:
+ *                 type: integer
+ *                 example: 5
+ *               voice_link:
+ *                 type: string
+ *                 example: "https://example.com/voice.mp3"
+ *               count_voice:
+ *                 type: integer
+ *                 example: 2
+ *               voice_transcript:
+ *                 type: string
+ *                 example: "Transkrip percakapan..."
+ *               is_completed:
+ *                 type: boolean
+ *                 example: true
+ *     responses:
+ *       201:
+ *         description: Task with extensions created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Task dengan extensions berhasil dibuat"
+ *                 data:
+ *                   $ref: '#/components/schemas/Task'
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ */
+router.post('/project/:projectId/with-extensions', authenticateToken, validate(schemas.createTaskWithExtensions), taskController.createTaskWithExtensions);
+
+/**
+ * @swagger
  * /api/tasks/statuses/project/{projectId}:
  *   get:
  *     summary: Get task statuses for a project
@@ -191,12 +302,20 @@ router.get('/statuses/project/:projectId', authenticateToken, taskController.get
 
 /**
  * @swagger
- * /api/tasks/statuses:
+ * /api/tasks/statuses/project/{projectId}:
  *   post:
  *     summary: Create task status
  *     tags: [Task Statuses]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Project ID
  *     requestBody:
  *       required: true
  *       content:
@@ -205,7 +324,6 @@ router.get('/statuses/project/:projectId', authenticateToken, taskController.get
  *             type: object
  *             required:
  *               - name
- *               - project_id
  *             properties:
  *               name:
  *                 type: string
@@ -217,9 +335,6 @@ router.get('/statuses/project/:projectId', authenticateToken, taskController.get
  *               position:
  *                 type: integer
  *                 default: 0
- *               project_id:
- *                 type: string
- *                 format: uuid
  *     responses:
  *       201:
  *         description: Task status created successfully
@@ -368,6 +483,42 @@ router.put('/statuses/:id', authenticateToken, validate(schemas.updateTaskStatus
  */
 router.delete('/statuses/:id', authenticateToken, taskController.deleteTaskStatus);
 
+/**
+ * @swagger
+ * /api/tasks/{id}:
+ *   get:
+ *     summary: Get task by ID
+ *     tags: [Tasks]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Task ID
+ *     responses:
+ *       200:
+ *         description: Task details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/Task'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
 router.get('/:id', authenticateToken, taskController.getTaskById);
 
 /**
@@ -823,8 +974,146 @@ router.delete('/:id/members/:userId', authenticateToken, taskController.removeTa
  *         $ref: '#/components/responses/ForbiddenError'
  */
 router.post('/:id/attachments', authenticateToken, uploadMultiple('attachments', 5), taskController.uploadAttachments);
+
+/**
+ * @swagger
+ * /api/tasks/{id}/attachments:
+ *   get:
+ *     summary: Get task attachments
+ *     tags: [Tasks]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Task ID
+ *     responses:
+ *       200:
+ *         description: List of task attachments
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                         format: uuid
+ *                       filename:
+ *                         type: string
+ *                       original_name:
+ *                         type: string
+ *                       file_size:
+ *                         type: integer
+ *                       mime_type:
+ *                         type: string
+ *                       uploaded_at:
+ *                         type: string
+ *                         format: date-time
+ *                       uploaded_by:
+ *                         type: string
+ *                         format: uuid
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
 router.get('/:id/attachments', authenticateToken, taskController.getTaskAttachments);
+
+/**
+ * @swagger
+ * /api/tasks/{id}/attachments/{attachmentId}/download:
+ *   get:
+ *     summary: Download task attachment
+ *     tags: [Tasks]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Task ID
+ *       - in: path
+ *         name: attachmentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Attachment ID
+ *     responses:
+ *       200:
+ *         description: File download
+ *         content:
+ *           application/octet-stream:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
 router.get('/:id/attachments/:attachmentId/download', authenticateToken, taskController.downloadAttachment);
+
+/**
+ * @swagger
+ * /api/tasks/{id}/attachments/{attachmentId}/preview:
+ *   get:
+ *     summary: Preview task attachment
+ *     tags: [Tasks]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Task ID
+ *       - in: path
+ *         name: attachmentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Attachment ID
+ *     responses:
+ *       200:
+ *         description: File preview
+ *         content:
+ *           image/*:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *           text/plain:
+ *             schema:
+ *               type: string
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
 router.get('/:id/attachments/:attachmentId/preview', authenticateToken, taskController.previewAttachment);
 
 /**
@@ -954,6 +1243,78 @@ router.delete('/:id/attachments/:attachmentId', authenticateToken, taskControlle
  *         $ref: '#/components/responses/ForbiddenError'
  */
 router.get('/:id/comments', authenticateToken, taskController.getTaskComments);
+
+/**
+ * @swagger
+ * /api/tasks/{id}/comments:
+ *   post:
+ *     summary: Create task comment
+ *     tags: [Tasks]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Task ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - message
+ *             properties:
+ *               message:
+ *                 type: string
+ *                 example: "Ini adalah komentar untuk task"
+ *     responses:
+ *       201:
+ *         description: Comment created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Komentar berhasil dibuat"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       format: uuid
+ *                     message:
+ *                       type: string
+ *                     created_at:
+ *                       type: string
+ *                       format: date-time
+ *                     user_id:
+ *                       type: string
+ *                       format: uuid
+ *                     username:
+ *                       type: string
+ *                     full_name:
+ *                       type: string
+ *                     avatar_url:
+ *                       type: string
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
 router.post('/:id/comments', authenticateToken, taskController.createTaskComment);
 
 /**
