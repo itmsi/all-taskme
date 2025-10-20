@@ -53,7 +53,7 @@ function FileUpload({ taskId, attachments, onUpload, onDelete }) {
       setImageUrls(prev => ({ ...prev, [attachmentId]: url }))
       return url
     } catch (error) {
-      console.error('Error loading image:', error)
+      // Silently handle image loading errors
       throw error
     }
   }
@@ -131,7 +131,6 @@ function FileUpload({ taskId, attachments, onUpload, onDelete }) {
       url: imageUrls[img.id] || `/api/tasks/${taskId}/attachments/${img.id}/preview`,
       name: img.original_name
     }))
-    console.log('Images for modal:', images)
     return images
   }, [imageAttachments, taskId, imageUrls])
 
@@ -151,19 +150,17 @@ function FileUpload({ taskId, attachments, onUpload, onDelete }) {
 
   const handleImageLoad = async (attachmentId) => {
     try {
-      console.log('Loading image for attachment:', attachmentId)
       setImageLoadingStates(prev => ({ ...prev, [attachmentId]: 'loading' }))
       await getImageUrl(attachmentId)
-      console.log('Image loaded successfully for attachment:', attachmentId)
       setImageLoadingStates(prev => ({ ...prev, [attachmentId]: 'loaded' }))
     } catch (error) {
-      console.error('Image load error for attachment:', attachmentId, error)
+      // Silently handle image load errors
       setImageLoadingStates(prev => ({ ...prev, [attachmentId]: 'error' }))
     }
   }
 
   const handleImageError = (attachmentId) => {
-    console.error('Image load error for attachment:', attachmentId)
+    // Silently handle image errors
     setImageLoadingStates(prev => ({ ...prev, [attachmentId]: 'error' }))
   }
 
@@ -316,10 +313,9 @@ function FileUpload({ taskId, attachments, onUpload, onDelete }) {
                           }`}
                           onClick={() => handleImagePreview(attachment)}
                           onLoad={() => {
-                            console.log('Image loaded:', attachment.id)
+                            // Image loaded successfully
                           }}
-                          onError={(e) => {
-                            console.error('Image error:', attachment.id, e)
+                          onError={() => {
                             handleImageError(attachment.id)
                           }}
                         />
