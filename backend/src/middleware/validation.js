@@ -84,7 +84,11 @@ const schemas = {
     priority: Joi.string().valid('low', 'medium', 'high', 'urgent').default('medium'),
     due_date: Joi.date().iso(),
     estimated_hours: Joi.number().integer().min(0),
-    status_id: Joi.string().uuid()
+    status_id: Joi.string().uuid(),
+    location_name: Joi.string().max(255).allow('', null),
+    location_latitude: Joi.number().allow('', null),
+    location_longitude: Joi.number().allow('', null),
+    location_address: Joi.string().max(1000).allow('', null)
   }),
 
   updateTask: Joi.object({
@@ -94,7 +98,11 @@ const schemas = {
     due_date: Joi.date().iso().allow('', null),
     estimated_hours: Joi.number().integer().min(0).allow('', null),
     actual_hours: Joi.number().integer().min(0).allow('', null),
-    status_id: Joi.string().uuid()
+    status_id: Joi.string().uuid(),
+    location_name: Joi.string().max(255).allow('', null),
+    location_latitude: Joi.number().allow('', null),
+    location_longitude: Joi.number().allow('', null),
+    location_address: Joi.string().max(1000).allow('', null)
   }),
 
   // Task status schemas

@@ -5,6 +5,15 @@ import { Toaster } from 'react-hot-toast'
 import App from './App.jsx'
 import './index.css'
 
+// Suppress findDOMNode warnings from third-party libraries
+const originalConsoleError = console.error
+console.error = (...args) => {
+  if (typeof args[0] === 'string' && args[0].includes('findDOMNode is deprecated')) {
+    return
+  }
+  originalConsoleError.apply(console, args)
+}
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <BrowserRouter>
     <App />

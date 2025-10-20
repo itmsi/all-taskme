@@ -271,6 +271,7 @@ const updateTask = async (req, res) => {
     const userId = req.user.id;
     const { title, description, status_id, priority, due_date, estimated_hours, actual_hours, location_name, location_latitude, location_longitude, location_address } = req.body;
 
+
     // Check if user has permission to update this task
     const permissionCheck = await query(`
       SELECT t.id FROM tasks t
