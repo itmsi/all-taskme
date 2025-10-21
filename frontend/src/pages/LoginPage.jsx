@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
-import { Eye, EyeOff } from 'lucide-react'
+import { Eye, EyeOff, Mail, Lock, ArrowRight } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useAuth } from '../hooks/useAuth'
 import Button from '../components/Button'
@@ -29,67 +29,86 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-center text-2xl font-bold text-gray-900">
-          Masuk ke akun Anda
+    <div className="space-y-8">
+      <div className="text-center">
+        <h2 className="text-3xl font-bold text-gray-900 mb-2">
+          Selamat Datang Kembali
         </h2>
-        <p className="mt-2 text-center text-sm text-gray-600">
-          Atau{' '}
-          <Link
-            to="/auth/register"
-            className="font-medium text-primary-600 hover:text-primary-500"
-          >
-            buat akun baru
-          </Link>
+        <p className="text-gray-600">
+          Masuk ke akun Anda untuk melanjutkan
         </p>
       </div>
 
       <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
-        <Input
-          label="Email"
-          type="email"
-          autoComplete="email"
-          {...register('email', {
-            required: 'Email wajib diisi',
-            pattern: {
-              value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-              message: 'Format email tidak valid'
-            }
-          })}
-          error={errors.email?.message}
-        />
+        <div className="space-y-5">
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Mail className="h-5 w-5 text-gray-400" />
+            </div>
+            <Input
+              label="Email"
+              type="email"
+              autoComplete="email"
+              className="pl-10"
+              placeholder="Masukkan email Anda"
+              {...register('email', {
+                required: 'Email wajib diisi',
+                pattern: {
+                  value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                  message: 'Format email tidak valid'
+                }
+              })}
+              error={errors.email?.message}
+            />
+          </div>
 
-        <div className="relative">
-          <Input
-            label="Password"
-            type={showPassword ? 'text' : 'password'}
-            autoComplete="current-password"
-            {...register('password', {
-              required: 'Password wajib diisi',
-              minLength: {
-                value: 6,
-                message: 'Password minimal 6 karakter'
-              }
-            })}
-            error={errors.password?.message}
-          />
-          <button
-            type="button"
-            className="absolute inset-y-0 right-0 pr-3 flex items-center"
-            onClick={() => setShowPassword(!showPassword)}
-          >
-            {showPassword ? (
-              <EyeOff className="h-5 w-5 text-gray-400" />
-            ) : (
-              <Eye className="h-5 w-5 text-gray-400" />
-            )}
-          </button>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Lock className="h-5 w-5 text-gray-400" />
+            </div>
+            <Input
+              label="Password"
+              type={showPassword ? 'text' : 'password'}
+              autoComplete="current-password"
+              className="pl-10 pr-12"
+              placeholder="Masukkan password Anda"
+              {...register('password', {
+                required: 'Password wajib diisi',
+                minLength: {
+                  value: 6,
+                  message: 'Password minimal 6 karakter'
+                }
+              })}
+              error={errors.password?.message}
+            />
+            <button
+              type="button"
+              className="absolute inset-y-0 right-0 pr-3 flex items-center"
+              onClick={() => setShowPassword(!showPassword)}
+            >
+              {showPassword ? (
+                <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600 transition-colors" />
+              ) : (
+                <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600 transition-colors" />
+              )}
+            </button>
+          </div>
         </div>
 
         <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            <input
+              id="remember-me"
+              name="remember-me"
+              type="checkbox"
+              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+            />
+            <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
+              Ingat saya
+            </label>
+          </div>
           <div className="text-sm">
-            <a href="#" className="font-medium text-primary-600 hover:text-primary-500">
+            <a href="#" className="font-medium text-blue-600 hover:text-blue-500 transition-colors">
               Lupa password?
             </a>
           </div>
@@ -97,13 +116,35 @@ export default function LoginPage() {
 
         <Button
           type="submit"
-          className="w-full"
+          className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-200 transform hover:scale-[1.02] shadow-lg hover:shadow-xl"
           loading={loading}
           disabled={loading}
         >
-          {loading ? 'Memproses...' : 'Masuk'}
+          {loading ? (
+            <div className="flex items-center justify-center">
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+              Memproses...
+            </div>
+          ) : (
+            <div className="flex items-center justify-center">
+              Masuk
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </div>
+          )}
         </Button>
       </form>
+
+      <div className="text-center">
+        <p className="text-sm text-gray-600">
+          Belum punya akun?{' '}
+          <Link
+            to="/auth/register"
+            className="font-semibold text-blue-600 hover:text-blue-500 transition-colors"
+          >
+            Daftar sekarang
+          </Link>
+        </p>
+      </div>
     </div>
   )
 }
