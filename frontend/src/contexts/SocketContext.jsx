@@ -12,11 +12,17 @@ export function SocketProvider({ children }) {
   useEffect(() => {
     if (user && token) {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:9561/api'
-      const socketUrl = apiUrl.replace('/api', '') || 'http://localhost:9561'
+      // For production, use the API domain directly for socket.io
+      const socketUrl = apiUrl.includes('api-taskme.motorsights.com') 
+        ? 'https://api-taskme.motorsights.com'
+        : apiUrl.replace('/api', '') || 'http://localhost:9561'
+      
+      console.log('Connecting to socket:', socketUrl)
       const newSocket = io(socketUrl, {
         auth: {
           token
-        }
+        },
+        transports: ['polling', 'websocket']
       })
 
       newSocket.on('connect', () => {

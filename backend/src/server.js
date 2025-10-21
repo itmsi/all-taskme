@@ -32,8 +32,13 @@ const server = createServer(app);
 // Socket.io setup
 const io = new Server(server, {
   cors: {
-    origin: process.env.CORS_ORIGIN || "http://localhost:9562",
-    methods: ["GET", "POST"]
+    origin: [
+      process.env.CORS_ORIGIN || "http://localhost:9562",
+      "https://taskme.motorsights.com",
+      "https://api-taskme.motorsights.com"
+    ],
+    methods: ["GET", "POST"],
+    credentials: true
   }
 });
 
