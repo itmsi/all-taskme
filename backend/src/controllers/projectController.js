@@ -78,17 +78,19 @@ const createProject = async (req, res) => {
       });
     }
 
-    // Verify user is member of the team
-    const teamCheck = await query(
-      'SELECT id FROM team_members WHERE team_id = $1 AND user_id = $2',
-      [team_id, userId]
-    );
+    // Verify user is member of the team (admin can bypass this check)
+    if (req.user.role !== 'admin') {
+      const teamCheck = await query(
+        'SELECT id FROM team_members WHERE team_id = $1 AND user_id = $2',
+        [team_id, userId]
+      );
 
-    if (teamCheck.rows.length === 0) {
-      return res.status(403).json({
-        success: false,
-        message: 'Anda bukan anggota team ini'
-      });
+      if (teamCheck.rows.length === 0) {
+        return res.status(403).json({
+          success: false,
+          message: 'Anda bukan anggota team ini'
+        });
+      }
     }
 
     const result = await query(`
