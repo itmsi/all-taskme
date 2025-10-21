@@ -1764,19 +1764,21 @@ const createTaskWithExtensions = async (req, res) => {
       });
     }
 
-    // Check if user has permission to create tasks in this project
-    const permissionCheck = await query(`
-      SELECT p.id FROM projects p
-      LEFT JOIN project_collaborators pc ON p.id = pc.project_id
-      WHERE p.id = $1 AND (p.created_by = $2 OR pc.role IN ('owner', 'collaborator'))
-      LIMIT 1
-    `, [projectId, userId]);
+    // Check if user has permission to create tasks in this project (admin can bypass this check)
+    if (req.user.role !== 'admin') {
+      const permissionCheck = await query(`
+        SELECT p.id FROM projects p
+        LEFT JOIN project_collaborators pc ON p.id = pc.project_id
+        WHERE p.id = $1 AND (p.created_by = $2 OR pc.role IN ('owner', 'collaborator'))
+        LIMIT 1
+      `, [projectId, userId]);
 
-    if (permissionCheck.rows.length === 0) {
-      return res.status(403).json({
-        success: false,
-        message: 'Anda tidak memiliki izin untuk membuat task di project ini'
-      });
+      if (permissionCheck.rows.length === 0) {
+        return res.status(403).json({
+          success: false,
+          message: 'Anda tidak memiliki izin untuk membuat task di project ini'
+        });
+      }
     }
 
     // Check if location columns exist by trying a simple query first
@@ -1858,9 +1860,12 @@ const createTaskWithExtensions = async (req, res) => {
     });
   } catch (error) {
     console.error('Create task with extensions error:', error);
+    console.error('Error details:', error.message);
+    console.error('Error stack:', error.stack);
     res.status(500).json({
       success: false,
-      message: 'Gagal membuat task dengan extensions'
+      message: 'Gagal membuat task dengan extensions',
+      error: error.message
     });
   }
 };
