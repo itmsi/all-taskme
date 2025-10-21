@@ -11,7 +11,9 @@ export function SocketProvider({ children }) {
 
   useEffect(() => {
     if (user && token) {
-      const newSocket = io(import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:9561', {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:9561/api'
+      const socketUrl = apiUrl.replace('/api', '') || 'http://localhost:9561'
+      const newSocket = io(socketUrl, {
         auth: {
           token
         }
