@@ -2,155 +2,76 @@
 
 Sistem manajemen tugas yang lengkap dengan fitur kolaborasi tim, real-time chat, dan analytics.
 
-## 🚀 Teknologi yang Digunakan
-
-### Backend
-- **Express.js** - Framework web Node.js
-- **PostgreSQL** - Database relasional
-- **JWT** - Autentikasi token
-- **Socket.io** - Real-time communication
-- **Swagger** - Dokumentasi API
-
-### Frontend
-- **React.js** - Library UI
-- **Vite** - Build tool
-- **Tailwind CSS** - Styling framework
-- **Socket.io Client** - Real-time communication
-
-### DevOps
-- **Docker** - Containerization
-- **Docker Compose** - Multi-container orchestration
-
-## 📋 Fitur Utama
-
-### ✅ Autentikasi & User Management
-- Registrasi dan login pengguna
-- JWT token authentication
-- Role-based access control (Leader, Member, Viewer)
-
-### 👥 Team Management
-- CRUD tim dan anggota tim
-- Manajemen role dalam tim
-- Validasi akses berdasarkan role
-
-### 📁 Project Management
-- CRUD proyek
-- Assign proyek ke tim
-- Kolaborasi lintas tim
-- Progress tracking otomatis
-
-### 📝 Task Management
-- CRUD task dengan status dinamis
-- Assign member ke task
-- Upload file attachment
-- View mode Kanban dan List
-
-### 💬 Real-time Chat & Notifikasi
-- Chat real-time per task
-- Notifikasi in-app
-- Event-based notifications
-
-### 📊 Analytics & Timeline
-- Dashboard analytics proyek
-- Statistik kontribusi member
-- Timeline dan Gantt chart
-
-## 🛠️ Setup Development
-
-### Prerequisites
-- Node.js (v18+)
-- Docker & Docker Compose
-- PostgreSQL (opsional, untuk development mode)
-
-### Quick Start
-
-1. **Clone repository**
-```bash
-git clone <repository-url>
-cd taskme
-```
-
-2. **Start dengan Docker (Recommended)**
-```bash
-./start.sh
-```
-
-3. **Atau start development mode**
-```bash
-./dev.sh
-```
-
-4. **Setup database terpisah (opsional)**
-```bash
-./setup-db.sh
-```
-
-### Akses Aplikasi
-- **Frontend**: http://localhost:9562
-- **Backend API**: http://localhost:9561
-- **API Documentation**: http://localhost:9561/api-docs
-- **Database**: localhost:9563
-
-### Scripts Available
-- `./start.sh` - Start semua services dengan Docker
-- `./dev.sh` - Start development mode
-- `./stop.sh` - Stop semua services
-- `./setup-db.sh` - Setup database saja
-
-## 📁 Struktur Proyek
+## 📁 Struktur Project
 
 ```
 taskme/
-├── backend/                 # Express.js API
-│   ├── src/
-│   │   ├── controllers/    # Route handlers
-│   │   ├── models/         # Database models
-│   │   ├── routes/         # API routes
-│   │   ├── middleware/     # Custom middleware
-│   │   ├── services/       # Business logic
-│   │   └── utils/          # Utility functions
-│   ├── database/           # Database migrations & seeds
-│   └── Dockerfile
-├── frontend/               # React.js App
-│   ├── src/
-│   │   ├── components/     # Reusable components
-│   │   ├── pages/          # Page components
-│   │   ├── services/       # API services
-│   │   ├── context/        # React context
-│   │   ├── hooks/          # Custom hooks
-│   │   └── utils/          # Utility functions
-│   └── Dockerfile
-├── docker-compose.yml      # Docker orchestration
-└── README.md
+├── backend/           # Backend API (Node.js + Express)
+├── frontend/          # Frontend (React + Vite)
+├── docs/             # Dokumentasi project
+├── scripts/          # Script deployment dan maintenance
+├── docker/           # Konfigurasi Docker
+├── config/           # File konfigurasi environment
+├── tests/            # File testing
+└── nginx/            # Konfigurasi Nginx
 ```
 
-## 🔧 Environment Variables
+## 🚀 Quick Start
 
-### Backend (.env)
-```env
-NODE_ENV=development
-PORT=5000
-DATABASE_URL=postgresql://taskme_user:taskme_password@localhost:9563/taskme
-JWT_SECRET=your-super-secret-jwt-key
+### Development Mode
+```bash
+# Start semua services dengan Docker
+./scripts/start.sh
+
+# Atau start development mode
+./scripts/dev.sh
+
+# Stop semua services
+./scripts/stop.sh
 ```
 
-### Frontend (.env)
-```env
-VITE_API_URL=http://localhost:9561/api
-```
+### Production Setup
+Lihat dokumentasi lengkap di folder `docs/`:
+- `docs/TUTORIAL_SETUP.md` - Setup production lengkap
+- `docs/TUTORIAL_PRODUCTION_SAFE.md` - Setup production yang aman
+- `docs/SERVER_SETUP.md` - Setup server
 
-## 📚 API Documentation
+## 📚 Dokumentasi
 
-Setelah menjalankan backend, dokumentasi API tersedia di:
-- **Swagger UI**: http://localhost:9561/api-docs
+Semua dokumentasi tersedia di folder `docs/`:
+- `docs/README.md` - Dokumentasi lengkap project
+- `docs/API.md` - Dokumentasi API
+- `docs/CONTRIBUTING.md` - Panduan kontribusi
+- `docs/SYSTEM_OVERVIEW.md` - Overview sistem
 
-## 🤝 Contributing
+## 🔧 Scripts
 
-1. Fork repository
-2. Buat feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push ke branch (`git push origin feature/AmazingFeature`)
-5. Buat Pull Request
+Semua script tersedia di folder `scripts/`:
+- `scripts/start.sh` - Start aplikasi
+- `scripts/dev.sh` - Development mode
+- `scripts/stop.sh` - Stop aplikasi
+- `scripts/setup-*.sh` - Setup scripts
+- `scripts/fix-*.sh` - Fix scripts
+- `scripts/deploy-*.sh` - Deployment scripts
+
+## 🐳 Docker
+
+Konfigurasi Docker tersedia di folder `docker/`:
+- `docker/docker-compose.yml` - Development
+- `docker/docker-compose.prod.yml` - Production
+- `docker/docker-compose.server.yml` - Server mode
+
+## ⚙️ Konfigurasi
+
+File konfigurasi environment tersedia di folder `config/`:
+- `config/env.prod.example` - Production environment
+- `config/env.server.example` - Server environment
+
+## 🧪 Testing
+
+File testing tersedia di folder `tests/`:
+- `tests/test-api.http` - API testing
+- `tests/test-*.html` - Frontend testing
 
 ## 📄 License
 

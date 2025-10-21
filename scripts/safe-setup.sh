@@ -59,7 +59,7 @@ echo -e "${GREEN}✅ Docker Compose is installed${NC}"
 # Step 2: Setup environment
 echo -e "${BLUE}📝 Step 2: Setting up environment variables...${NC}"
 if [ ! -f .env.server ]; then
-    cp env.server.example .env.server
+    cp config/env.server.example .env.server
     echo -e "${YELLOW}⚠️  Please edit .env.server with your secure passwords:${NC}"
     echo "  - DB_PASSWORD=your-secure-database-password"
     echo "  - JWT_SECRET=your-super-secure-jwt-secret"

@@ -20,7 +20,7 @@ sudo git clone <repository-url> taskme
 cd taskme
 
 # 2. Check port availability (PENTING!)
-./check-ports.sh
+./scripts/check-ports.sh
 
 # 3. Check Nginx status
 sudo systemctl status nginx
@@ -37,7 +37,7 @@ sudo systemctl status nginx
 
 ```bash
 # 1. Setup environment variables
-sudo cp env.server.example .env.server
+sudo cp config/env.server.example .env.server
 sudo nano .env.server
 ```
 
@@ -67,7 +67,7 @@ sudo certbot --nginx -d api-taskme.motorsights.com --non-interactive --agree-tos
 **Opsi 2: Menggunakan script aman**
 ```bash
 # Gunakan script yang sudah dibuat khusus untuk production
-sudo ./setup-ssl-production-safe.sh
+sudo ./scripts/setup-ssl-production-safe.sh
 ```
 
 **Yang akan terjadi:**
@@ -84,7 +84,7 @@ sudo ./setup-ssl-production-safe.sh
 
 ```bash
 # 1. Generate konfigurasi Nginx
-./generate-nginx-config.sh
+./scripts/generate-nginx-config.sh
 
 # 2. Copy konfigurasi ke Nginx
 sudo cp nginx-taskme.conf /etc/nginx/sites-available/taskme
@@ -110,7 +110,7 @@ sudo systemctl reload nginx
 
 ```bash
 # Setup Docker dengan DNS yang aman
-sudo ./fix-dns.sh
+sudo ./scripts/fix-dns.sh
 ```
 
 **Yang akan terjadi:**
@@ -124,7 +124,7 @@ sudo ./fix-dns.sh
 
 ```bash
 # Deploy TaskMe dengan network isolated
-./deploy-server.sh
+./scripts/deploy-server.sh
 ```
 
 **Yang akan terjadi:**
@@ -139,7 +139,7 @@ sudo ./fix-dns.sh
 
 ```bash
 # Create admin user
-./server-maintenance.sh admin
+./scripts/server-maintenance.sh admin
 ```
 
 ---
@@ -168,26 +168,26 @@ sudo ./fix-dns.sh
 
 ```bash
 # 1. Check status
-./server-maintenance.sh status
+./scripts/server-maintenance.sh status
 
 # 2. Check health
-./server-maintenance.sh health
+./scripts/server-maintenance.sh health
 
 # 3. Check DNS
-./server-maintenance.sh dns
+./scripts/server-maintenance.sh dns
 
 # 4. Check logs
-./server-maintenance.sh logs
+./scripts/server-maintenance.sh logs
 
 # 5. Restart services
-./server-maintenance.sh restart
+./scripts/server-maintenance.sh restart
 ```
 
 ### **Jika perlu rollback:**
 
 ```bash
 # Rollback lengkap
-sudo ./rollback.sh
+sudo ./scripts/rollback.sh
 ```
 
 **Script rollback akan:**
@@ -237,10 +237,10 @@ Setelah mengikuti tahapan di atas, TaskMe akan berjalan dengan:
 - 📚 **Documentation**: https://api-taskme.motorsights.com/api-docs
 
 **Script yang tersedia:**
-- `setup-ssl-production-safe.sh` - SSL setup yang aman
-- `generate-nginx-config.sh` - Generate konfigurasi Nginx
-- `check-ports.sh` - Check port availability
-- `rollback.sh` - Rollback jika ada masalah
-- `server-maintenance.sh` - Maintenance commands
-- `test-dns.sh` - Test DNS resolution
-- `fix-dns.sh` - Fix DNS issues
+- `scripts/setup-ssl-production-safe.sh` - SSL setup yang aman
+- `scripts/generate-nginx-config.sh` - Generate konfigurasi Nginx
+- `scripts/check-ports.sh` - Check port availability
+- `scripts/rollback.sh` - Rollback jika ada masalah
+- `scripts/server-maintenance.sh` - Maintenance commands
+- `scripts/test-dns.sh` - Test DNS resolution
+- `scripts/fix-dns.sh` - Fix DNS issues
