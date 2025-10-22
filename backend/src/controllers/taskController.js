@@ -1372,7 +1372,7 @@ const getTaskStatuses = async (req, res) => {
     const result = await query(`
       SELECT id, name, color, position, is_default, created_at
       FROM task_statuses
-      WHERE project_id = $1 OR is_default = true
+      WHERE project_id = $1 OR (is_default = true AND project_id IS NULL)
       ORDER BY position ASC, created_at ASC
     `, [projectId]);
 
