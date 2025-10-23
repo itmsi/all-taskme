@@ -29,14 +29,16 @@ const swaggerSpec = require('./config/swagger');
 const app = express();
 const server = createServer(app);
 
+// Parse CORS origins from environment variable (comma-separated)
+const corsOrigins = (process.env.CORS_ORIGIN || "http://localhost:9562")
+  .split(',')
+  .map(origin => origin.trim())
+  .filter(origin => origin.length > 0);
+
 // Socket.io setup
 const io = new Server(server, {
   cors: {
-    origin: [
-      process.env.CORS_ORIGIN || "http://localhost:9562",
-      "https://taskme.motorsights.com",
-      "https://api-taskme.motorsights.com"
-    ],
+    origin: corsOrigins,
     methods: ["GET", "POST"],
     credentials: true
   }
@@ -58,9 +60,9 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
-// CORS - Allow all origins for development
+// CORS configuration
 app.use(cors({
-  origin: true, // Allow all origins
+  origin: corsOrigins,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
