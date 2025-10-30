@@ -23,6 +23,7 @@ const projectRoutes = require('./routes/projects');
 const taskRoutes = require('./routes/tasks');
 const notificationRoutes = require('./routes/notifications');
 const analyticsRoutes = require('./routes/analytics');
+const pagesRoutes = require('./routes/pages');
 
 // Swagger documentation
 const swaggerUi = require('swagger-ui-express');
@@ -100,6 +101,7 @@ app.use('/api/projects', projectRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/pages', pagesRoutes);
 
 // Error handling
 app.use(notFound);
