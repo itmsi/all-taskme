@@ -6,7 +6,9 @@ const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const { createServer } = require('http');
 const { Server } = require('socket.io');
-require('dotenv').config();
+const path = require('path');
+// Force load env from backend/.env regardless of CWD
+require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 
 const { connectDB } = require('./database/connection');
 const { setupSocket } = require('./socket/socketHandler');
@@ -28,6 +30,7 @@ const swaggerSpec = require('./config/swagger');
 
 const app = express();
 const server = createServer(app);
+const crypto = require('crypto');
 
 // Parse CORS origins from environment variable (comma-separated)
 const corsOrigins = (process.env.CORS_ORIGIN || "http://localhost:9562")
@@ -117,6 +120,15 @@ const startServer = async () => {
       console.log(`🚀 Server running on port ${PORT}`);
       console.log(`📚 API Documentation: http://localhost:${PORT}/api-docs`);
       console.log(`🏥 Health Check: http://localhost:${PORT}/health`);
+      // Sanitize JWT secret (remove quotes/trim) and reflect back a short hash for debugging
+      const rawSecret = process.env.JWT_SECRET || 'dev-super-secret-jwt-key-for-development-only';
+      const cleanedSecret = rawSecret.replace(/^['"]|['"]$/g, '').trim();
+      // Persist cleaned value for rest of app
+      process.env.JWT_SECRET = cleanedSecret;
+      const secretHash = cleanedSecret ? crypto.createHash('sha256').update(cleanedSecret).digest('hex').slice(0, 8) : 'none';
+      console.log(`[Config] JWT alg=${process.env.JWT_ALGORITHM || 'HS256'}, secretHash=${secretHash}, len=${cleanedSecret.length}`);
+      console.log(`[Config] JWT secret=${cleanedSecret}`);
+      console.log(`[Config] SSO dblink host=${process.env.DB_GATE_SSO_HOST}:${process.env.DB_GATE_SSO_PORT}, db=${process.env.DB_GATE_SSO_NAME}, user=${process.env.DB_GATE_SSO_USER}`);
     });
   } catch (error) {
     console.error('❌ Failed to start server:', error);

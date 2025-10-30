@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const { query } = require('../database/connection');
+const { ensureLocalUserFromSso, resolveEmailFromToken } = require('../utils/ssoProvisioning');
 
 const setupSocket = (io) => {
   // Authentication middleware for socket
@@ -11,20 +12,14 @@ const setupSocket = (io) => {
         return next(new Error('Authentication error'));
       }
 
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      
-      // Get user data
-      const userResult = await query(
-        'SELECT id, email, full_name, avatar_url FROM users WHERE id = $1 AND is_active = true',
-        [decoded.userId]
-      );
-
-      if (userResult.rows.length === 0) {
+      const { email } = await resolveEmailFromToken(token);
+      const user = await ensureLocalUserFromSso(email);
+      if (!user || user.is_active === false) {
         return next(new Error('User not found'));
       }
 
-      socket.userId = decoded.userId;
-      socket.user = userResult.rows[0];
+      socket.userId = user.id;
+      socket.user = user;
       next();
     } catch (error) {
       next(new Error('Authentication error'));

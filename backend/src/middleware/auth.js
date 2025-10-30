@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const { query } = require('../database/connection');
+const { ensureLocalUserFromSso, resolveEmailFromToken } = require('../utils/ssoProvisioning');
 
 const authenticateToken = async (req, res, next) => {
   try {
@@ -13,34 +14,61 @@ const authenticateToken = async (req, res, next) => {
       });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
-    // Get user data from database
-    const userResult = await query(
-      'SELECT id, email, full_name, avatar_url, role, is_active FROM users WHERE id = $1 AND is_active = true',
-      [decoded.userId]
-    );
+    // Debug: decode header/payload sebelum verifikasi untuk bantu diagnosis
+    try {
+      const decodedComplete = jwt.decode(token, { complete: true });
+      if (decodedComplete) {
+        const hdrAlg = decodedComplete.header && decodedComplete.header.alg;
+        const claimKeys = decodedComplete.payload ? Object.keys(decodedComplete.payload) : [];
+        console.log(`[Auth] Pre-verify token alg=${hdrAlg}, claimKeys=${claimKeys.join(',')}`);
+      } else {
+        console.log('[Auth] Pre-verify decode returned null');
+      }
+    } catch (e) {
+      console.log('[Auth] Pre-verify decode error:', e.message);
+    }
 
-    if (userResult.rows.length === 0) {
-      return res.status(401).json({ 
+    // Verify SSO token dan resolve email
+    const { email } = await resolveEmailFromToken(token);
+
+    // Ensure local user exists (auto-provision from SSO via dblink)
+    const user = await ensureLocalUserFromSso(email);
+    if (!user || user.is_active === false) {
+      return res.status(401).json({
         error: 'Invalid token',
-        message: 'Token tidak valid atau user tidak aktif' 
+        message: 'Token tidak valid atau user tidak aktif'
       });
     }
 
-    req.user = userResult.rows[0];
+    req.user = user;
     next();
   } catch (error) {
     if (error.name === 'JsonWebTokenError') {
+      console.error('[Auth] JWT error:', error.message);
       return res.status(401).json({ 
         error: 'Invalid token',
         message: 'Token tidak valid' 
       });
     }
     if (error.name === 'TokenExpiredError') {
+      console.error('[Auth] Token expired:', error.message);
       return res.status(401).json({ 
         error: 'Token expired',
         message: 'Token sudah kadaluarsa, silakan login kembali' 
+      });
+    }
+    if (error.name === 'EmployeeNotFound') {
+      console.error('[Auth] Employee not found for token identifier');
+      return res.status(401).json({
+        error: 'Invalid token',
+        message: 'User SSO tidak ditemukan di gate_sso.employees'
+      });
+    }
+    if (error.name === 'EmailResolveError') {
+      console.error('[Auth] Email could not be resolved from token');
+      return res.status(401).json({
+        error: 'Invalid token',
+        message: 'Email tidak ditemukan di token SSO dan tidak bisa di-resolve'
       });
     }
     
@@ -79,14 +107,10 @@ const optionalAuth = async (req, res, next) => {
     const token = authHeader && authHeader.split(' ')[1];
 
     if (token) {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      const userResult = await query(
-        'SELECT id, email, full_name, avatar_url, role, is_active FROM users WHERE id = $1 AND is_active = true',
-        [decoded.userId]
-      );
-
-      if (userResult.rows.length > 0) {
-        req.user = userResult.rows[0];
+      const { email } = await resolveEmailFromToken(token);
+      const user = await ensureLocalUserFromSso(email);
+      if (user && user.is_active) {
+        req.user = user;
       }
     }
 
