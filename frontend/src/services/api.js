@@ -153,3 +153,23 @@ export const analyticsAPI = {
   getTeamAnalytics: (id) => api.get(`/analytics/team/${id}`),
   getDashboardAnalytics: () => api.get('/analytics/dashboard'),
 }
+
+// Pages API
+export const pagesAPI = {
+  getTree: (params) => api.get('/pages/tree', { params }),
+  search: (q) => api.get('/pages/search', { params: { q } }),
+  getById: (id) => api.get(`/pages/${id}`),
+  getBySlug: (slug) => api.get(`/pages/slug/${slug}`),
+  create: (data) => api.post('/pages', data),
+  update: (id, data) => api.put(`/pages/${id}`, data),
+  remove: (id) => api.delete(`/pages/${id}`),
+  // blocks
+  getBlocks: (pageId) => api.get(`/pages/${pageId}/blocks`),
+  createBlock: (pageId, data) => api.post(`/pages/${pageId}/blocks`, data),
+  reorderBlocks: (pageId, order) => api.post(`/pages/${pageId}/blocks/reorder`, { order }),
+  updateBlock: (blockId, data) => api.put(`/pages/blocks/${blockId}`, data),
+  deleteBlock: (blockId) => api.delete(`/pages/blocks/${blockId}`),
+  uploadBlockImage: (pageId, formData) => api.post(`/pages/${pageId}/blocks/upload`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
+}

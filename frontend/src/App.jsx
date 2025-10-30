@@ -17,6 +17,8 @@ import TaskDetailPage from './pages/TaskDetailPage'
 import AddTaskPage from './pages/AddTaskPage'
 import ProfilePage from './pages/ProfilePage'
 import AnalyticsPage from './pages/AnalyticsPage'
+import PageBrowserPage from './pages/PageBrowserPage'
+import PageDetailPage from './pages/PageDetailPage'
 import NotificationsPage from './pages/NotificationsPage'
 import UsersPage from './pages/UsersPage'
 
@@ -75,6 +77,8 @@ function AppRoutes() {
         <Route path="tasks/add/:projectId" element={<AddTaskPage />} />
         <Route path="tasks/:id" element={<TaskDetailPage />} />
         <Route path="analytics" element={<AnalyticsPage />} />
+        <Route path="pages" element={<PageBrowserPage />} />
+        <Route path="page/:slug" element={<PageDetailPage />} />
         <Route path="notifications" element={<NotificationsPage />} />
         <Route path="users" element={<UsersPage />} />
         <Route path="profile" element={<ProfilePage />} />

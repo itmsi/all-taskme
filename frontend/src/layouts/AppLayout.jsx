@@ -12,7 +12,8 @@ import {
   Bell,
   Settings,
   TrendingUp,
-  Shield
+  Shield,
+  FileText
 } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import Button from '../components/Button'
@@ -29,6 +30,7 @@ export default function AppLayout() {
     { name: 'Tim', href: '/teams', icon: Users },
     { name: 'Proyek', href: '/projects', icon: FolderOpen },
     { name: 'Tugas', href: '/tasks', icon: CheckSquare },
+    { name: 'Pages', href: '/pages', icon: FileText },
     { name: 'Analytics', href: '/analytics', icon: TrendingUp },
     { name: 'Notifikasi', href: '/notifications', icon: Bell },
     ...(user?.role === 'admin' ? [{ name: 'Users', href: '/users', icon: Shield }] : []),
